@@ -7,6 +7,7 @@ import time
 import threading
 import pyttsx3
 from textblob import TextBlob
+from PIL import Image, ImageTk, ImageSequence
 from difflib import get_close_matches
 from PyDictionary import PyDictionary
 from model import DictionaryModel
@@ -18,8 +19,6 @@ class DictionaryView:
         self.root.title("Audio Dictionary With Spell Checks")
         self.root.config(bg="grey")
         self.root.geometry("650x700+400+1")
-        self.icon=tk.PhotoImage(file="images/icon.png")
-        self.root.iconphoto(True,self.icon)
         self.root.protocol("WM_DELETE_WINDOW", self.controller.on_closing)
 
         self.parent_tab = ttk.Notebook(self.root)
@@ -31,8 +30,7 @@ class DictionaryView:
         self.parent_tab.add(self.tab2, text="Settings")
         self.parent_tab.pack(expand=1, fill="both")
 
-        self.icon = tk.PhotoImage(file="images/icon.png")
-        self.root.iconphoto(True, self.icon)
+        
 
         self.setup_tab1()
         self.setup_tab2()
@@ -42,10 +40,11 @@ class DictionaryView:
         self.audio_image = tk.PhotoImage(file="images/audio.png")
         tk.Label(self.tab1, image=self.audio_image).pack(side="top", fill="x")
         tk.Label(self.tab1, text="Input Word:", justify="left", font=("Gabriola", 25)).pack(side="top")
-
-        self.loading = ttk.Label(self.tab1)
+        self.loading=ttk.Label(self.tab1)
         self.loading.pack()
+
         self.spinner = SpinnerLabel(self.loading, "images/loading1.gif", size=(20, 20))
+        self.spinner.pack()
         self.spinner.pack_forget()
 
         self.entry = ttk.Combobox(self.tab1, width=45, font=("Cambria", 15))
@@ -69,7 +68,7 @@ class DictionaryView:
         self.meaning_box.pack(side="top", expand=1, fill="x")
 
     def setup_tab2(self):
-        tk.Label(self.tab2, text="Choose entry and meaning theme", justify="left", font=("Gabriola", 35)).pack(side="top")
+        tk.Label(self.tab2, text="Choose meaning theme", justify="left", font=("Gabriola", 35)).pack(side="top")
         self.selected_meaning_colour = tk.IntVar()
         tk.Radiobutton(self.tab2, text="default", variable=self.selected_meaning_colour, value=0, font=10).pack(side="top")
         tk.Radiobutton(self.tab2, text="dark", variable=self.selected_meaning_colour, value=1, font=10).pack(side="top")
@@ -90,13 +89,29 @@ class DictionaryView:
         self.recent_box = tk.Text(self.tab3, state="disabled", bg="lightgrey", width=45, font=("Candara", 25), height=8, bd=5, blockcursor=True)
         self.recent_box.pack(side="top", expand=1, fill="x")
 
-        self.word_buttons = [tk.Button(self.recent_box, text="", bg="lightgrey", font=("Ariel", 15)) for _ in range(8)]
-        for button in self.word_buttons:
-            button.pack(side="top", fill="x")
+        self.first_word=tk.Button(self.recent_box,text="" ,command=self.controller.research1,bg="lightgrey", font=("Ariel",15))
+        self.first_word.pack (side="top",fill="x")
 
-        tk.Button(self.tab3, width=10, height=1, bd=5, bg="#ff6060", text="Clear History", command=self.controller.clear_history).pack(side="left")
-        tk.Button(self.tab3, width=15, bg="lightblue", height=1, bd=5, text="View Full History", command=self.controller.show_full_history).pack(side="left")
+        self.second_word=tk.Button(self.recent_box,text="",command=self.controller.research2,bg="lightgrey", font=("Ariel",15))
+        self.second_word.pack (side="top",fill="x")
 
+        self.third_word=tk.Button(self.recent_box,text="",command=self.controller.research3,bg="lightgrey", font=("Ariel",15))
+        self.third_word.pack (side="top",fill="x")
+        self.fourth_word=tk.Button(self.recent_box ,text="",command=self.controller.research4,bg="lightgrey", font=("Ariel",15))
+        self.fourth_word.pack (side="top",fill="x")
+        self.fifth_word=tk.Button(self.recent_box,text="",command=self.controller.research5,bg="lightgrey", font=("Ariel",15))
+        self.fifth_word.pack (side="top",fill="x")
+        self.sixth_word=tk.Button(self.recent_box,text="",command=self.controller.research6,bg="lightgrey", font=("Ariel",15))
+        self.sixth_word.pack (side="top",fill="x")
+        self.seventh_word=tk.Button(self.recent_box,text="",command=self.controller.research7,bg="lightgrey", font=("Ariel",15))
+        self.seventh_word.pack (side="top",fill="x")
+        self.eight_word=tk.Button(self.recent_box,text="",command=self.controller.research8,bg="lightgrey", font=("Ariel",15))
+        self.eight_word.pack (side="top",fill="x")
+
+        self.clear=tk.Button(self.tab3,width=10, height=1 ,bd=5,bg="#ff6060",text="Clear History" ,command=self.controller.clear_history)
+        self.clear.pack(side="left")
+        self.show_button=tk.Button(self.tab3,width=15,bg="lightblue", height=1 ,bd=5,text="View Full History", command=self.controller.show_full_history)    
+        self.show_button.pack(side="left")
     def update_preview(self, word):
         self.preview.config(state="normal")
         self.preview.delete(1.0, tk.END)
@@ -111,20 +126,13 @@ class DictionaryView:
             self.meaning_box.insert(tk.END, f"{', '.join(meanings[meaning])}\n\n")
         self.meaning_box.config(state="disabled")
 
-    def update_recent_search(self, full_history, search_time):
-        for i, (word, time) in enumerate(zip(full_history, search_time)):
-            if i < 8:
-                self.word_buttons[i].config(text=f"{word}          {time}")
 
     def apply_theme(self, bg, fg):
-        self.entry.config(bg=bg, fg=fg)
+        
         self.meaning_box.config(bg=bg, fg=fg)
 
     def show_error(self, title, message):
-        showerror(title=title, message=message)
-
-    def ask_yes_no(self, title, message):
-        return askyesno(title=title, message=message)
+        showerror(title=title, message=message)  
 
     def show_spinner(self):
         self.spinner.pack()
@@ -133,28 +141,20 @@ class DictionaryView:
         self.spinner.pack_forget()
 
 class SpinnerLabel(tk.Label):
-    def __init__(self, parent, spinner_path, size=(20, 20)):
-        super().__init__(parent)
-        self.configure(image="")
-        self.image = tk.PhotoImage(file=spinner_path)
-        self.configure(image=self.image)
+    def __init__(self, master, gif_path, size, *args, **kwargs):
+        tk.Label.__init__(self, master, *args, **kwargs)
         self.size = size
-        self._is_running = False
+        self.frames = [ImageTk.PhotoImage(img.resize(self.size, Image.Resampling.LANCZOS)) 
+                       for img in ImageSequence.Iterator(Image.open(gif_path))]
+        self.index = 0
+        self.update_label()
 
-    def start(self):
-        if not self._is_running:
-            self._is_running = True
-            self.animate()
+    def update_label(self):
+        self.config(image=self.frames[self.index])
+        self.index = (self.index + 1) % len(self.frames)
+        self.after(100, self.update_label)  # Adjust the delay as necessary
 
-    def stop(self):
-        if self._is_running:
-            self._is_running = False
 
-    def animate(self, counter=0):
-        if not self._is_running:
-            return
-        self.configure(image=self.image.subsample(counter % 5, counter % 5))
-        self.after(100, lambda: self.animate(counter + 1))
 
 if __name__ == "__main__":
     root = tk.Tk()
