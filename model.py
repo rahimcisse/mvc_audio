@@ -1,8 +1,8 @@
 import json
 import os
 import time
-from difflib import get_close_matches
 from textblob import TextBlob
+from difflib import get_close_matches
 from PyDictionary import PyDictionary
 
 class DictionaryModel:
@@ -16,6 +16,14 @@ class DictionaryModel:
         self.load_data()
 
     def load_all_words(self):
+        os.makedirs("documents", exist_ok=True)
+        os.makedirs("saved_audio", exist_ok=True)
+
+        if os.path.isfile("documents/data.json")==False:
+            file = open("documents/all_words.json", 'a') 
+
+        if os.path.isfile("documents/data.json")==False:
+            file = open("documents/data.json", 'a') 
         try:
             with open(self.words_path, "r") as json_file:
                 data = json.load(json_file)

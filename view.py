@@ -50,6 +50,8 @@ class DictionaryView:
         self.entry = ttk.Combobox(self.tab1, width=45, font=("Cambria", 15))
         self.entry.pack(side="top", expand=1, fill="x")
         self.entry.bind('<KeyRelease>', self.controller.likely)
+        self.read_word_button=tk.Button(self.entry,bd=4,text="🔊",bg="lightblue",command=self.controller.say_word)
+        self.read_word_button.pack(side="right", padx=25)
 
         self.preview = tk.Text(self.tab1, width=10, height=1, bg="#ececec", font=("Times New Roman", 20), state="disabled")
         self.preview.pack(pady=10)
@@ -64,22 +66,47 @@ class DictionaryView:
         self.read_button = tk.Button(self.tab1, bg="#70c2f2", width=110, height=300, bd=5, image=self.read_image, command=self.controller.speak)
         self.read_button.pack(side="left")
 
-        self.meaning_box = ScrolledText(self.tab1, state="disabled", bg="lightgrey", width=45, font=("Candara", 15), height=15, bd=5, blockcursor=True)
+        self.meaning_box = ScrolledText(self.tab1, state="disabled", bg="white", width=45, font=("Candara", 15), height=15, bd=5, blockcursor=True)
         self.meaning_box.pack(side="top", expand=1, fill="x")
 
     def setup_tab2(self):
-        tk.Label(self.tab2, text="Choose meaning theme", justify="left", font=("Gabriola", 35)).pack(side="top")
-        self.selected_meaning_colour = tk.IntVar()
-        tk.Radiobutton(self.tab2, text="default", variable=self.selected_meaning_colour, value=0, font=10).pack(side="top")
-        tk.Radiobutton(self.tab2, text="dark", variable=self.selected_meaning_colour, value=1, font=10).pack(side="top")
-        tk.Radiobutton(self.tab2, text="light", variable=self.selected_meaning_colour, value=2, font=10).pack(side="top")
-        tk.Button(self.tab2, text="Apply", command=self.controller.theme, bd=5, bg="lightblue").pack(side="top")
+        tk.Label(self.tab2, text="Save Recent Audio Meaning As", justify="left", font=("Gabriola", 35)).pack(side="top")
+
+        self.file_name=tk.Entry(self.tab2)
+        self.file_name.pack(side="top")
+
+        self.save_audio=tk.Button(self.tab2,bd=5,bg="lightblue",command=self.controller.meaning_read_save, text="Save read meaning")
+        self.save_audio.pack(side="top")
+
+        
+        self.progress=ttk.Progressbar(self.tab2)
+        self.progress.pack(side="top")
 
         tk.Label(self.tab2, text="Choose voice", justify="left", font=("Gabriola", 35)).pack(side="top")
         self.selected_voice = tk.IntVar()
         tk.Radiobutton(self.tab2, text="Male", variable=self.selected_voice, value=0, font=10).pack(side="top")
         tk.Radiobutton(self.tab2, text="Female", variable=self.selected_voice, value=1, font=10).pack(side="top")
         self.selected_voice.set(1)
+
+        self.style=ttk.Style()
+        self.style.configure('TScale',background='lightgrey')
+        self.selected_volume=tk.IntVar
+        self.selected_speed=tk.IntVar
+
+        tk.Label(self.tab2, text="Set Reading Speed", justify="left", font=("Gabriola", 25)).pack(side="top")
+        self.speed_slider=ttk.Scale(self.tab2,from_=1,to=200,style='TScale',variable=self.selected_speed ,command=self.controller.speed_slider_change, orient="horizontal")
+        self.speed_slider.pack(side="top")
+        
+        self.speed_label=tk.Label(self.tab2, justify="left", font=("Gabriola", 15))
+        self.speed_label.pack(side="top")
+        self.speed_slider.set(125)
+
+        tk.Label(self.tab2, text="Set volume", justify="left", font=("Gabriola", 25)).pack(side="top")
+        self.volume_slider=ttk.Scale(self.tab2,from_=0,to=100,style='TScale',variable=self.selected_volume,command=self.controller.volume_slider_change, orient="horizontal")
+        self.volume_slider.pack(side="top")
+        self.volume_label=tk.Label(self.tab2, justify="left", font=("Gabriola", 15))
+        self.volume_label.pack(side="top")
+        self.volume_slider.set(100)
 
     def setup_tab3(self):
         self.recent_image = tk.PhotoImage(file="images/recent.png")
@@ -112,6 +139,8 @@ class DictionaryView:
         self.clear.pack(side="left")
         self.show_button=tk.Button(self.tab3,width=15,bg="lightblue", height=1 ,bd=5,text="View Full History", command=self.controller.show_full_history)    
         self.show_button.pack(side="left")
+
+
     def update_preview(self, word):
         self.preview.config(state="normal")
         self.preview.delete(1.0, tk.END)

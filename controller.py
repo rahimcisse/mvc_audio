@@ -1,21 +1,20 @@
 import os
 import time
-import threading
 import pyttsx3
+import threading
+import tkinter as tk
 from textblob import TextBlob
+from view import DictionaryView
+from model import DictionaryModel
 from difflib import get_close_matches
 from PyDictionary import PyDictionary
-from model import DictionaryModel
-from view import DictionaryView
-from tkinter.messagebox import askyesno
-import tkinter as tk
+from tkinter.messagebox import askyesno, askokcancel,showerror
 from tkinter.scrolledtext import ScrolledText
 
 class DictionaryController:
     def __init__(self, root):
         self.model = DictionaryModel()
         self.view = DictionaryView(root, self)
-        # self.view.update_recent_search(self.model.full_history, self.model.search_time)
         self.is_running = False
         self.close = False
         self.validating()
@@ -26,11 +25,19 @@ class DictionaryController:
             self.view.root.destroy()
             self.show_full_history
 
+    def speed_slider_change(self,event):
+        speed_slider_new='{: .1f}'.format(self.view.speed_slider.get())
+        self.view.speed_label.config(text=speed_slider_new)
+
+    def volume_slider_change(self,event):
+        volume_slider_new='{: .0f}%'.format(self.view.volume_slider.get())
+        self.view.volume_label.config(text=volume_slider_new)
+     
     def likely(self, event=None):
         def start(event):
             word = self.view.entry.get().lower().strip()
-            likely_words = get_close_matches(word, self.model.all_words)
-            self.view.entry.config(values=likely_words[:6])
+            likely_words = get_close_matches(word, possibilities=self.model.all_words,cutoff=0.6,n=6)
+            self.view.entry.config(values=likely_words)
         start_likely = threading.Thread(target=start, args=(event,))
         start_likely.start()
 
@@ -119,23 +126,76 @@ class DictionaryController:
             else:
                         return
 
+    
+    def say_word(self):
+        word=self.view.entry.get().strip()
+        if word:
+            word_thread=threading.Thread(target=self.word_synthesis)
+            word_thread.start()
+
+    def word_synthesis(self):
+            word=self.view.entry.get().strip()
+
+            if word == "":
+                self.view.show_error(title='Error', message='Please enter the word you want to search for!!')
+                self.view.hide_spinner()
+                return
+            if word.isalpha()==False :
+            # message box to display if the word variable has symbols and digits
+                self.view.show_error('Error',f'Sorry, cannot search for the meaning of "{word}", Please enter a valid word.')
+                self.view.hide_spinner()
+                return  # Exit the function if the word is empty
+            
+            self.view.read_word_button.config(state="disabled")
+            self.view.show_spinner()
+            engine = pyttsx3.init()
+            rate = engine.getProperty('rate')
+            engine.setProperty('rate', int(self.view.speed_slider.get()))
+            volume=engine.getProperty('volume')
+            engine.setProperty('volume',int(self.view.volume_slider.get())/10)
+            voices = engine.getProperty('voices')
+            engine.setProperty('voice', voices[self.view.selected_voice.get()].id)        
+            engine.say(word)
+            if engine._inLoop:
+                self.view.read_word_button.config(state="normal")
+                engine.endLoop()
+                self.view.hide_spinner()
+           # this function processes the voice 
+            else:
+                    self.view.read_word_button.config(state="normal")
+                    engine.runAndWait()
+                    self.view.hide_spinner()
+            self.view.read_button.config(state="normal")
+
     def speak(self):
         word = self.view.entry.get().strip()
+        if word == "":
+            self.view.show_error(title='Error', message='Please enter the word you want to search for!!')
+            self.view.hide_spinner()
+            return
+        if word.isalpha()==False :
+            # message box to display if the word variable has symbols and digits
+                self.view.show_error('Error',f'Sorry, cannot search for the meaning of "{word}", Please enter a valid word.')
+                self.view.hide_spinner()
+                return  # Exit the function if the word is empty        
         if word:
             speak_thread = threading.Thread(target=self.speak_word, args=(word,))
             speak_thread.start()
         else:
             self.view.show_error("Error", "Field is empty")
 
+
+
     def speak_word(self, word):
         self.view.read_button.config(state="disabled")
         self.view.show_spinner()
         engine = pyttsx3.init()
         rate = engine.getProperty('rate')
-        engine.setProperty('rate', 125)
+        engine.setProperty('rate', int(self.view.speed_slider.get()))
+        volume=engine.getProperty('volume')
+        engine.setProperty('volume',int(self.view.volume_slider.get())/10)
         voices = engine.getProperty('voices')
-        engine.setProperty('voice', voices[self.view.selected_voice.get()].id)
-            # creating a dictionary object
+        engine.setProperty('voice', voices[self.view.selected_voice.get()].id)            # creating a dictionary object
         dictionary = PyDictionary()
 
             # passing a word to the dictionary object
@@ -162,10 +222,6 @@ class DictionaryController:
             engine.endLoop()
             self.view.loading.config(text="")
             self.view.hide_spinner()
-            
-                
-               
-
             # this function processes the voice 
         else:
                 self.view.read_button.config(state="normal")
@@ -175,13 +231,41 @@ class DictionaryController:
                 self.view.loading.config(text="")
         self.view.read_button.config(state="normal")
 
-    def theme(self):
-        if self.view.selected_meaning_colour.get() == 0:
-            self.view.apply_theme(bg="#ececec", fg="black")
-        elif self.view.selected_meaning_colour.get() == 1:
-            self.view.apply_theme(bg="black", fg="white")
-        elif self.view.selected_meaning_colour.get() == 2:
-            self.view.apply_theme(bg="white", fg="black")
+
+    def meaning_read_save(self):
+        save=threading.Thread(target=self.saving)
+        save.start()
+
+    def saving(self):
+        file_path=str(self.view.file_name.get().strip())
+        meaning=self.view.meaning_box.get(1.0,tk.END).strip()
+        meanings=self.view.meaning_box.get(1.0,tk.END).strip()
+        if meaning=="":
+            self.view.hide_spinner()
+            showerror(title="Faild" ,message="No meanings to be saved. Please search for the meaning first")                
+            return
+        if file_path =="":
+             showerror(title="Save As", message="Please enter Save As name")
+             return
+        if askyesno(title="Save As", message=f"Do you want to save mp3 file as '{file_path}'"): 
+            self.view.progress.start(1)
+            
+            
+            engine = pyttsx3.init()
+            rate = engine.getProperty('rate')
+            engine.setProperty('rate', int(self.view.speed_slider.get()))
+            volume=engine.getProperty('volume')
+            engine.setProperty('volume',int(self.view.volume_slider.get())/10)
+            voices = engine.getProperty('voices')
+            engine.setProperty('voice', voices[self.view.selected_voice.get()].id)         
+            engine.save_to_file(text=meanings, filename=f"saved_audio/{file_path}.mp3")
+            self.view.hide_spinner()
+            engine.runAndWait()
+                    
+            
+            self.view.progress.stop()
+            askokcancel(title="Save", message="Saving Complete. Saved audio can be found in the saved_audio folder.")
+            
 
     def clear_history(self):
         if self.view.ask_yes_no("Clear", "Are you sure you want to clear history?"):
@@ -237,8 +321,8 @@ class DictionaryController:
 
     def research1(self):
         try:
-            self.view.entry.delete(0,self.view.end())
-            self.view.entry.insert(self.tk.END,self.model.full_history[0])
+            self.view.entry.delete(0,tk.END)
+            self.view.entry.insert(tk.END,self.model.full_history[0])
             self.switch_tab(self.view.parent_tab,0)
             self.search()
         except IndexError:
@@ -247,8 +331,8 @@ class DictionaryController:
 
     def research2(self):
         try:
-            self.view.entry.delete(0,self.view.end())
-            self.view.entry.insert(self.view.end(),self.model.full_history[1])
+            self.view.entry.delete(0,tk.END)
+            self.view.entry.insert(tk.END,self.model.full_history[1])
             self.switch_tab(self.view.parent_tab,0)
             self.search()
         except IndexError:
@@ -256,8 +340,8 @@ class DictionaryController:
 
     def research3(self):
         try:
-            self.view.entry.delete(0,self.view.end())
-            self.view.entry.insert(self.view.end(),self.model.full_history[2])
+            self.view.entry.delete(0,tk.END)
+            self.view.entry.insert(tk.END,self.model.full_history[2])
             self.switch_tab(self.view.parent_tab,0)
             self.search()
         except IndexError:
@@ -265,8 +349,8 @@ class DictionaryController:
 
     def research4(self):
         try:
-            self.view.entry.delete(0,self.view.end())
-            self.view.entry.insert(self.view.end(),self.model.full_history[3])
+            self.view.entry.delete(0,tk.END)
+            self.view.entry.insert(tk.END,self.model.full_history[3])
             self.switch_tab(self.view.parent_tab,0)
             self.search()
         except IndexError:
@@ -274,8 +358,8 @@ class DictionaryController:
 
     def research5(self):
         try:
-            self.view.entry.delete(0,self.view.end())
-            self.view.entry.insert(self.view.end(),self.model.full_history[4])
+            self.view.entry.delete(0,tk.END)
+            self.view.entry.insert(tk.END,self.model.full_history[4])
             self.switch_tab(self.view.parent_tab,0)
             self.search()
         except IndexError:
@@ -283,8 +367,8 @@ class DictionaryController:
 
     def research6(self):
         try:
-            self.view.entry.delete(0,self.view.end())
-            self.view.entry.insert(self.view.end(),self.model.full_history[5])
+            self.view.entry.delete(0,tk.END)
+            self.view.entry.insert(tk.END,self.model.full_history[5])
             self.switch_tab(self.view.parent_tab,0)
             self.search()
         except IndexError:
@@ -292,8 +376,8 @@ class DictionaryController:
 
     def research7(self):
         try:
-            self.view.entry.delete(0,self.view.end())
-            self.view.entry.insert(self.view.end(),self.model.full_history[6])
+            self.view.entry.delete(0,tk.END)
+            self.view.entry.insert(tk.END,self.model.full_history[6])
             self.switch_tab(self.view.parent_tab,0)
             self.search()
         except IndexError:
@@ -301,8 +385,8 @@ class DictionaryController:
 
     def research8(self):
         try:
-            self.view.entry.delete(0,self.view.end())
-            self.view.entry.insert(self.view.end(),self.model.full_history[7])
+            self.view.entry.delete(0,tk.END)
+            self.view.entry.insert(tk.END,self.model.full_history[7])
             self.switch_tab(self.view.parent_tab,0)
             self.search()
         except IndexError:

@@ -1,11 +1,7 @@
 import tkinter as tk
 from view import DictionaryView
 from controller import DictionaryController
-import os
-os.makedirs("documents", exist_ok=True)
 
-if os.path.isfile("documents/data.json")==False:
-     file = open("documents/data.json", 'a') 
      
 if __name__ == "__main__":
     root = tk.Tk()
