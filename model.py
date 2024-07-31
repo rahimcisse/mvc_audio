@@ -19,7 +19,7 @@ class DictionaryModel:
     def load_data(self):
         
         os.makedirs("documents", exist_ok=True)
-        os.makedirs("saved_audio", exist_ok=True)
+        os.makedirs("saved_meanings", exist_ok=True)
 
         if os.path.isfile("documents/data.json")==False:
             file = open("documents/data.json", 'a') 
@@ -41,8 +41,15 @@ class DictionaryModel:
         
     def open_file(self,file_path):
         root_path=os.getcwd()
-        os.startfile(f"{root_path}/saved_audio/{file_path}.mp3")
+        os.startfile(f"{root_path}/saved_meanings/{file_path}.mp3")
+
+    def open_file_txt(self,file_path):
+        root_path=os.getcwd()
+        os.startfile(f"{root_path}/saved_meanings/{file_path}.txt")
 
     def open_folder(self):
         root_path=os.getcwd()
-        os.startfile(f"{root_path}/saved_audio")
+        os.startfile(f"{root_path}/saved_meanings")
+
+
+

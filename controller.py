@@ -97,6 +97,7 @@ class DictionaryController:
                     self.view.update_meaning_box(meanings)
                     self.view.hide_spinner()
                     self.validating()
+                    self.view.save_button.pack(side="right")
 
                 else:
                     if word==self.model.full_history[0]:
@@ -264,6 +265,46 @@ class DictionaryController:
             self.view.progress["value"] = number+10
             self.view.tab4.update()
 
+    def meaning_save(self):
+        if self.view.selected_save.get()==0:
+            self.meaning_read_save()
+            
+        else:
+            self.meaning_text_save()
+
+
+    def meaning_text_save(self):
+         saving_txt=threading.Thread(target=self.saving_text)
+         saving_txt.start()
+
+
+    def saving_text(self):
+        file_path=str(self.view.file_name.get().strip())
+        meanings=self.view.meaning_box.get(1.0,self.view.end).strip()
+        if meanings=="":
+            self.view.showerror(title="FAILD" ,message="NO MEANINGS TO BE SAVED. PLEASE SEARCH FOR THE MEANING FIRST")                
+            return
+        if file_path =="":
+             self.view.showerror(title="SAVE AS", message="PLEASE ENTER SAVE AS NAME ")
+             return
+        if self.view.askyesno(title="SAVE AS", message=f"DO YOU WANT TO SAVE AUDIO AS '{file_path}'.txt "): 
+            self.view.progress.start()
+            self.increment(40)
+
+            with open(f"saved_meanings/{file_path}.txt","a") as file:
+                file.write(f"{self.model.full_history[0]}\n")   
+                file.write(meanings)   
+                file.close() 
+        self.increment(90)
+                    
+            
+        self.view.progress.stop()
+        if self.view.askyesno(title="SAVING COMPLETE ", message="SAVED IN 'SAVED_MEANINGS' FOLDER.\n WOULD YOU LIKE TO OPEN fILE?"):
+            self.model.open_file_txt(file_path)
+            self.switch_tab(self.view.parent_tab,0)
+            self.view.parent_tab.hide(3)
+
+
     def meaning_read_save(self):
         save=threading.Thread(target=self.saving)
         save.start()
@@ -291,14 +332,14 @@ class DictionaryController:
             self.increment(60)
             engine.setProperty('voice', voices[self.view.selected_voice.get()].id) 
             self.increment(70)        
-            engine.save_to_file(text=meanings, filename=f"saved_audio/{file_path}.mp3")
+            engine.save_to_file(meanings, filename=f"saved_meanings/{file_path}.mp3")
             self.increment(80)
             engine.runAndWait()
             self.increment(90)
                     
             
             self.view.progress.stop()
-            if self.view.askyesno(title="SAVING COMPLETE ", message="SAVED IN 'SAVED_AUDIO' FOLDER.\n DO YOU WANT TO OPEN fILE?"):
+            if self.view.askyesno(title="SAVING COMPLETE ", message="SAVED IN 'SAVED_MEANINGS' FOLDER.\n WOULD YOU LIKE TO OPEN fILE?"):
                 self.model.open_file(file_path)
                 self.switch_tab(self.view.parent_tab,0)
                 self.view.parent_tab.hide(3)
@@ -367,6 +408,7 @@ class DictionaryController:
                     self.view.hide_spinner()
             self.view.read_button.config(state="normal")
          
+
 
     def view_audiofolder(self):
         self.model.open_folder()

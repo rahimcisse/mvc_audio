@@ -31,7 +31,7 @@ class DictionaryView:
         self.tab3 = ttk.Frame(self.parent_tab)
         self.tab4 = ttk.Frame(self.parent_tab)
 
-
+    
         self.parent_tab.add(self.tab1, text="Home")
         self.parent_tab.add(self.tab3, text="Recent")
         self.parent_tab.add(self.tab2, text="Settings")
@@ -52,7 +52,7 @@ class DictionaryView:
         self.menu.add_separator()
         self.menu.add_command(label="Search", command=self.controller.search)
         self.menu.add_separator()
-        self.menu.add_command(label="Save audio", command=lambda:(self.parent_tab.add(self.tab4),self.controller.switch_tab(self.parent_tab,3)))
+        self.menu.add_command(label="Save meanings", command=lambda:(self.parent_tab.add(self.tab4),self.controller.switch_tab(self.parent_tab,3)))
         self.menu.add_separator()
         self.menu.add_command(label="Copy meanings", command=self.controller.copy_meaning)
         self.menu.add_command(label="Cut", command=self.controller.cut)
@@ -88,7 +88,7 @@ class DictionaryView:
         self.entry.pack(side="top", expand=1, fill="x")
         self.entry.bind('<KeyRelease>', self.controller.likely)
 
-        self.read_word_button=tk.Button(self.entry,bd=4,text="🔊",bg="lightblue",command=self.controller.say_word)
+        self.read_word_button=tk.Button(self.entry,bd=4,text="🔊",bg="lightblue",command=self.controller.say_word,cursor="hand2")
         self.read_word_button.pack(side="right", padx=25)
         self.hover_popup(self.read_word_button, "Pronounce word")
 
@@ -96,7 +96,7 @@ class DictionaryView:
         self.preview.pack(pady=10)
 
         self.search_image = tk.PhotoImage(file="images/search.png")
-        self.search_button=tk.Button(self.tab1, bg="#f5f3ed", width=50, height=30, bd=5, image=self.search_image, command=self.controller.search)
+        self.search_button=tk.Button(self.tab1, bg="#f5f3ed", width=50, height=30, bd=5, image=self.search_image, command=self.controller.search,cursor="hand2")
         self.search_button.pack(side="top")
         self.hover_popup(self.search_button, "Search for meanings")
 
@@ -104,7 +104,7 @@ class DictionaryView:
         tk.Label(self.tab1, image=self.meaning_image).pack(side="top")
 
         self.read_image = tk.PhotoImage(file="images/read_man.png")
-        self.read_button = tk.Button(self.tab1, bg="#70c2f2", width=110, height=300, bd=5, image=self.read_image, command=self.controller.read_sentence)
+        self.read_button = tk.Button(self.tab1, bg="#70c2f2", width=110, height=300, bd=5,cursor="hand2", image=self.read_image, command=self.controller.read_sentence)
         self.read_button.pack(side="left")
         self.hover_popup(self.read_button, "Read meaning")
         
@@ -120,8 +120,8 @@ class DictionaryView:
 
         tk.Label(self.tab2, text="Choose voice", justify="left", font=("Gabriola", 35)).pack(side="top")
         self.selected_voice = tk.IntVar()
-        tk.Radiobutton(self.tab2, text="Male", variable=self.selected_voice, value=0, font=10).pack(side="top")
-        tk.Radiobutton(self.tab2, text="Female", variable=self.selected_voice, value=1, font=10).pack(side="top")
+        tk.Radiobutton(self.tab2, text="Male", variable=self.selected_voice, value=0, font=10,cursor="hand2").pack(side="top")
+        tk.Radiobutton(self.tab2, text="Female", variable=self.selected_voice, value=1, font=10,cursor="hand2").pack(side="top")
         self.selected_voice.set(1)
 
         self.style=ttk.Style()
@@ -129,7 +129,7 @@ class DictionaryView:
         self.selected_speed=tk.IntVar
 
         tk.Label(self.tab2, text="Set Reading Speed", justify="left", font=("Gabriola", 25)).pack(side="top")
-        self.speed_slider=ttk.Scale(self.tab2,from_=1,to=200,style='TScale',variable=self.selected_speed ,command=self.controller.speed_slider_change, orient="horizontal")
+        self.speed_slider=ttk.Scale(self.tab2,from_=1,to=200,style='TScale',variable=self.selected_speed ,command=self.controller.speed_slider_change, orient="horizontal",cursor="hand2")
         self.speed_slider.pack(side="top")
         self.hover_popup(self.speed_slider, "Increase or decrease speed of reading")
         
@@ -181,40 +181,51 @@ class DictionaryView:
         self.hover_popup(self.eight_word, "Research")
 
 
-        self.clear=tk.Button(self.tab3,width=10, height=1 ,bd=5,bg="#ff6060",text="Clear History" ,command=self.controller.clear_history)
+        self.clear=tk.Button(self.tab3,width=10, height=1 ,cursor="hand2",bd=5,bg="#ff6060",text="Clear History" ,command=self.controller.clear_history)
         self.clear.pack(side="left")
         self.hover_popup(self.clear, "Clear all history")
 
-        self.show_button=tk.Button(self.tab3,width=15,bg="lightblue", height=1 ,bd=5,text="View Full History", command=self.controller.show_full_history)    
+        self.show_button=tk.Button(self.tab3,width=15,bg="lightblue",cursor="hand2", height=1 ,bd=5,text="View Full History", command=self.controller.show_full_history)    
         self.show_button.pack(side="left")
         self.hover_popup(self.show_button, "Display full history")
 
-        self.save_button=tk.Button(self.tab3,width=15,bg="lightblue", height=1 ,bd=5,text="Save Audio", command=lambda:(self.parent_tab.add(self.tab4),self.controller.switch_tab(self.parent_tab,3)))    ##############
+        self.save_button=tk.Button(self.tab3,width=15,cursor="hand2",bg="lightblue", height=1 ,bd=5,text="Save Audio", command=lambda:(self.parent_tab.add(self.tab4),self.controller.switch_tab(self.parent_tab,3)))   
         self.save_button.pack(side="right")
+        self.save_button.pack_forget()
         self.hover_popup(self.save_button, "Save audio")
 
 
     def setup_tab4(self):
         
-        tk.Label(self.tab4, text="Save Recent Audio Meaning As", justify="left", font=("Gabriola", 35)).pack(side="top",pady=50)
+        tk.Label(self.tab4, text="Save Recent Audio Meaning ", justify="left", font=("Gabriola", 35)).pack(side="top",pady=15)
         tk.Label(self.tab4, text="Input Save As Name", justify="left", font=("Gabriola", 25)).pack(side="top")
 
-        self.file_name=tk.Entry(self.tab4, font=30)
+        self.selected_save = tk.IntVar()
+        tk.Radiobutton(self.tab4, text="Audio", variable=self.selected_save, value=0,cursor="hand2", font=3).pack(side="top")
+        tk.Radiobutton(self.tab4, text="Text", variable=self.selected_save, value=1,cursor="hand2", font=3).pack(side="top")
+ 
+
+        self.file_name=tk.Entry(self.tab4, font=30,bd=10,bg="lightgrey",border=5)
         self.file_name.pack(side="top",pady=20)
 
-        self.save_audio=tk.Button(self.tab4,bd=5,bg="lightblue",font=40, command=self.controller.meaning_read_save, text="Save read meaning")
+
+
+
+        self.save_audio=tk.Button(self.tab4,bd=5,bg="lightblue",font=30, command=self.controller.meaning_save,cursor="hand2", text="Save meanings")
         self.save_audio.pack(side="top",pady=10)
 
 
-        self.openfolder=tk.Button(self.tab4,bd=5,bg="lightblue",font=20, text="Downloads",  command=self.controller.view_audiofolder)
+        self.openfolder=tk.Button(self.tab4,bd=5,bg="lightblue",font=10, text="Downloads",cursor="hand2",  command=self.controller.view_audiofolder)
         self.openfolder.pack(side="top")
-        
+        self.hover_popup(self.save_button, "View all saved audio")
+
         self.progress=ttk.Progressbar(self.tab4, length=200)
         self.progress.step(100)
         self.progress.pack(side="top",pady=50)
 
-        self.done=tk.Button(self.tab4,bd=5,bg="lightblue",font=20, text="Done",  command=lambda:(self.controller.switch_tab(self.parent_tab,0),self.parent_tab.hide(3)))
+        self.done=tk.Button(self.tab4,bd=5,bg="lightblue",font=20, text="Done",cursor="hand2",  command=lambda:(self.controller.switch_tab(self.parent_tab,0),self.parent_tab.hide(3)))
         self.done.pack(side="bottom",pady=20)
+        
 
     is_open=False
     def boolean(self):
