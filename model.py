@@ -1,13 +1,13 @@
-import json
+import json 
 import os
 import time
 
-class DictionaryModel:
+class DictionaryModel: #defining model class
     def __init__(self):
-        self.full_history = []
+        self.full_history = [] #setting all lists as empty
         self.search_time = []
         self.likely_words=[]
-        self.data_path = "documents/data.json"
+        self.data_path = "documents/data.json"  #storing path into
         self.load_data()
 
 
@@ -16,13 +16,13 @@ class DictionaryModel:
         with open(self.data_path, "w") as json_file:
             json.dump(data, json_file, indent=4)
 
-    def load_data(self):
+    def load_data(self):#loading data into lists
         
         os.makedirs("documents", exist_ok=True)
         os.makedirs("saved_meanings", exist_ok=True)
 
-        if os.path.isfile("documents/data.json")==False:
-            file = open("documents/data.json", 'a') 
+        if os.path.isfile(self.data_path)==False:
+            file = open(self.data_path, 'a') 
         try:
             with open(self.data_path, "r") as json_file:
                 data = json.load(json_file)
@@ -33,13 +33,13 @@ class DictionaryModel:
             self.search_time = []
 
 
-    def add_to_history(self, word):
+    def add_to_history(self, word): #adding to history
         current_time = time.ctime()
         self.full_history.append(word)
         self.search_time.append(current_time)
         self.save_data()
         
-    def open_file(self,file_path):
+    def open_file(self,file_path): #opening saved file
         root_path=os.getcwd()
         os.startfile(f"{root_path}/saved_meanings/{file_path}.mp3")
 

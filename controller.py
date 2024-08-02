@@ -13,20 +13,20 @@ class DictionaryController:
         self.model = DictionaryModel() 
         self.view = DictionaryView(root, self)
         self.is_running = False #assigning false to raise flag that program isn't searching for a word
-        self.is_open=False
-        self.validating()
+        self.is_open=False #raising a flag that full history widow isn't open
+        self.validating() #this function helps the user to search a word that has been searched recently by clicking on it 
 
 
 
 
     def on_closing(self):
-        if self.view.askyesno(title="QUIT" , message="ARE YOU SURE YOU WANT TO QUIT?") :
+        if self.view.askyesno(title="QUIT" , message="ARE YOU SURE YOU WANT TO QUIT?") : #for closing window
             self.view.boolean()
             self.view.root.destroy()
 
 
 
-    def speed_slider_change(self,event):
+    def speed_slider_change(self,event): #configuring the slider and slider label
         try:
             self.slider=self.view.speed_slider.get()
             speed_slider_new='{: .1f}'.format(self.slider)
@@ -36,7 +36,7 @@ class DictionaryController:
     
 
     
-    def likely(self, event=None):
+    def likely(self,event): #gtting likely words
 
         
             def start(event):
@@ -57,7 +57,7 @@ class DictionaryController:
             start_likely.start()
 
 
-    def search(self):
+    def search(self): #searching for word
         try:
             if not self.is_running:
                 search_thread = threading.Thread(target=self.search_synthesis)
@@ -93,7 +93,6 @@ class DictionaryController:
                 meanings = self.meaning(word)
                 if meanings:
                     self.model.add_to_history(word)
-                    # self.view.update_recent_search(self.model.full_history, self.model.search_time)
                     self.view.update_meaning_box(meanings)
                     self.view.hide_spinner()
                     self.validating()
@@ -105,7 +104,7 @@ class DictionaryController:
                         return
                     else:
                         self.view.hide_spinner()
-                        self.view.showerror(title='ERROR', message='YOU HAVE SLOW OR INTERNET CONNECTTION. PLEASE CHECK IT AND TRY AGAIN!!')
+                        self.view.showerror(title='ERROR', message='YOU HAVE SLOW OR INTERNET CONNECTION. PLEASE CHECK IT AND TRY AGAIN!!')
                         self.correct(word)
 
             else:
@@ -114,7 +113,7 @@ class DictionaryController:
             self.view.hide_spinner()
 
 
-    def meaning(self, word):        
+    def meaning(self, word):        #getting meanings
         try:
             dict_obj = PyDictionary()
             meanings = dict_obj.meaning(word)
@@ -140,7 +139,7 @@ class DictionaryController:
             return
 
 
-    def correct(self, word):
+    def correct(self, word): #correcting words
         corrected_word = TextBlob(word).correct()
         correct_meaning=PyDictionary.meaning(corrected_word) 
                 
@@ -156,7 +155,7 @@ class DictionaryController:
                         return
 
     
-    def say_word(self):
+    def say_word(self): #pronouncing word
         word=self.view.entry.get().strip()
         if word:
             word_thread=threading.Thread(target=self.word_synthesis)
@@ -176,7 +175,7 @@ class DictionaryController:
                 self.view.hide_spinner()
                 return  # Exit the function if the word is empty
             
-            self.view.read_word_button.config(state="disabled")
+            self.view.read_word_button.config(state="disabled",bg="red")
             self.view.show_spinner()
             engine = pyttsx3.init()
             rate = engine.getProperty('rate')
@@ -185,7 +184,7 @@ class DictionaryController:
             engine.setProperty('voice', voices[self.view.selected_voice.get()].id)        
             engine.say(word)
             if engine._inLoop:
-                self.view.read_word_button.config(state="normal")
+                self.view.read_word_button.config(state="normal",bg="lightblue")
                 engine.endLoop()
                 self.view.hide_spinner()
            # this function processes the voice 
@@ -193,10 +192,10 @@ class DictionaryController:
                     self.view.read_word_button.config(state="normal")
                     engine.runAndWait()
                     self.view.hide_spinner()
-            self.view.read_button.config(state="normal")
+            self.view.read_word_button.config(state="normal",bg="lightblue")
 
 
-    def read_sentence(self):
+    def read_sentence(self): #reading meanings
         word = self.model.full_history[0]
         if word == "":
             self.view.showerror(title='ERROR', message='PLEASE ENTER THE WORD YOU WANT TO SEARCH FOR!!')
@@ -225,7 +224,8 @@ class DictionaryController:
         rate = engine.getProperty('rate')
         engine.setProperty('rate', int(self.view.speed_slider.get()))
         voices = engine.getProperty('voices')
-        engine.setProperty('voice', voices[self.view.selected_voice.get()].id)            # creating a dictionary object
+        engine.setProperty('voice', voices[self.view.selected_voice.get()].id)            
+        # creating a dictionary object
         dictionary = PyDictionary()
 
             # passing a word to the dictionary object
@@ -250,22 +250,27 @@ class DictionaryController:
                 
         if engine._inLoop:
             self.view.read_button.config(state="normal")
+            self.view.while_end_image()
             engine.endLoop()
             self.view.hide_spinner()
             # this function processes the voice 
         else:
+                
                 self.view.read_button.config(state="normal")
+                self.view.while_reading_image()
                 engine.runAndWait()
                 self.view.hide_spinner()
+        self.view.while_end_image()
         self.view.read_button.config(state="normal")
 
     
-    def increment(self,number):
+    def increment(self,number): #increasing the progressbar
 
             self.view.progress["value"] = number+10
             self.view.tab4.update()
 
-    def meaning_save(self):
+
+    def meaning_save(self): #saving meaning
         if self.view.selected_save.get()==0:
             self.meaning_read_save()
             
@@ -287,7 +292,8 @@ class DictionaryController:
         if file_path =="":
              self.view.showerror(title="SAVE AS", message="PLEASE ENTER SAVE AS NAME ")
              return
-        if self.view.askyesno(title="SAVE AS", message=f"DO YOU WANT TO SAVE AUDIO AS '{file_path}'.txt "): 
+        if self.view.askyesno(title="SAVE AS", message=f"DO YOU WANT TO SAVE AUDIO AS '{file_path}'.txt "):
+            self.view.progress.pack() 
             self.view.progress.start()
             self.increment(40)
 
@@ -299,6 +305,7 @@ class DictionaryController:
                     
             
         self.view.progress.stop()
+        self.view.progress.pack_forget()
         if self.view.askyesno(title="SAVING COMPLETE ", message="SAVED IN 'SAVED_MEANINGS' FOLDER.\n WOULD YOU LIKE TO OPEN fILE?"):
             self.model.open_file_txt(file_path)
             self.switch_tab(self.view.parent_tab,0)
@@ -319,7 +326,8 @@ class DictionaryController:
         if file_path =="":
              self.view.showerror(title="SAVE AS", message="PLEASE ENTER SAVE AS NAME ")
              return
-        if self.view.askyesno(title="SAVE AS", message=f"DO YOU WANT TO SAVE AUDIO AS '{file_path}'.mp3 "): 
+        if self.view.askyesno(title="SAVE AS", message=f"DO YOU WANT TO SAVE AUDIO AS '{file_path}'.mp3 "):
+            self.view.progress.pack() 
             self.view.progress.start()
             self.increment(20)
             engine = pyttsx3.init()
@@ -335,17 +343,18 @@ class DictionaryController:
             engine.save_to_file(meanings, filename=f"saved_meanings/{file_path}.mp3")
             self.increment(80)
             engine.runAndWait()
-            self.increment(90)
+
                     
             
             self.view.progress.stop()
+            self.view.progress.pack_forget()
             if self.view.askyesno(title="SAVING COMPLETE ", message="SAVED IN 'SAVED_MEANINGS' FOLDER.\n WOULD YOU LIKE TO OPEN fILE?"):
                 self.model.open_file(file_path)
                 self.switch_tab(self.view.parent_tab,0)
                 self.view.parent_tab.hide(3)
             
 
-    def clear_history(self):
+    def clear_history(self): #function for clearing history
         self.view.tab3.bell()
         if self.view.askyesno("CLEAR", f"ARE YOU SURE YOU WANT TO CLEAR HISTORY? \n ALL SAVED DATA WILL BE LOST!!!"):
             self.model.full_history = []
@@ -356,13 +365,13 @@ class DictionaryController:
 
 
     
-    def show_full_history(self):
+    def show_full_history(self): #displaying full history
         self.view.setup_history_window(self.model.full_history,self.model.search_time)
 
 
     
 
-    def spell(self):
+    def spell(self): #spelling word
         word=self.view.entry.get().strip()
         if word:
             spell_thread=threading.Thread(target=self.spell_synthesis)
@@ -410,18 +419,18 @@ class DictionaryController:
          
 
 
-    def view_audiofolder(self):
+    def view_audiofolder(self): #opening saved_meanings folder
         self.model.open_folder()
 
 
-    def copy_meaning(self):
+    def copy_meaning(self): #copying meanings into clipboard
             
             meanings=self.view.meaning_box.get(1.0,self.view.end).strip()
             self.view.tab1.clipboard_clear()
             self.view.tab1.clipboard_append(meanings)
 
 
-    def cut(self):
+    def cut(self): 
          
         self.view.tab1.clipboard_clear()
         self.view.tab1.clipboard_append(self.view.entry.get())
@@ -429,18 +438,14 @@ class DictionaryController:
          
 
     def paste(self):
-        word_to_be_pasted=self.view.tab1.clipboard_get ()
-        self.view.entry.insert(0, self.view.end)
+        word_to_be_pasted=self.view.tab1.clipboard_get()
+        self.view.entry.insert(0, word_to_be_pasted)
         
 
-
-
-    def switch_tab(self, notebook, tab_index):
+        
+    def switch_tab(self, notebook, tab_index): #switching from one tab to another using index
         self.view.parent_tab.select(tab_index)
 
-
-    def redirect_to_save(self):
-         self.switch_tab(self.view.parent_tab,3)
 
 
     def research(self,index):
