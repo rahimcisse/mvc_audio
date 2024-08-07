@@ -22,6 +22,7 @@ class DictionaryController:
     def on_closing(self):
         if self.view.askyesno(title="QUIT" , message="ARE YOU SURE YOU WANT TO QUIT?") : #for closing window
             self.view.boolean()
+            self.view.is_saving_boolean()
             self.view.root.destroy()
 
 
@@ -30,7 +31,7 @@ class DictionaryController:
         try:
             self.slider=self.view.speed_slider.get()
             speed_slider_new='{: .1f}'.format(self.slider)
-            self.view.speed_label.config(text=speed_slider_new)
+            self.view.speed_label.config(text=f"🐢          {speed_slider_new}          🐇")
         except AttributeError:
             pass
     
@@ -89,14 +90,13 @@ class DictionaryController:
             
 
             if word:
-                self.view.update_preview(word)
                 meanings = self.meaning(word)
                 if meanings:
                     self.model.add_to_history(word)
+                    self.view.meaning_label.config(text=f"Meaning({word})")
                     self.view.update_meaning_box(meanings)
                     self.view.hide_spinner()
                     self.validating()
-                    self.view.save_button.pack(side="right")
 
                 else:
                     if word==self.model.full_history[0]:
@@ -193,17 +193,18 @@ class DictionaryController:
                     engine.runAndWait()
                     self.view.hide_spinner()
             self.view.read_word_button.config(state="normal",bg="lightblue")
+            self.view.hide_spinner()
 
 
     def read_sentence(self): #reading meanings
-        word = self.model.full_history[0]
+        word = str(self.model.full_history[0])
         if word == "":
             self.view.showerror(title='ERROR', message='PLEASE ENTER THE WORD YOU WANT TO SEARCH FOR!!')
             self.view.hide_spinner()
             return
         if word.isalpha()==False :
             # message box to display if the word variable has symbols and digits
-                self.view.showerror('ERROR',f'SORRY, CANNOT SEARCH FOR THE MEANING OF"{word}"\n PLEASE ENTER A VALID WORD.')
+                self.view.showerror('ERROR',f'SORRY, CANNOT SEARCH FOR THE MEANING OF"{word}"\n PLEASE ENTER A SINGLE AND VALID WORD.')
                 self.view.hide_spinner()
                 return  # Exit the function if the word is empty        
         if word:
@@ -243,23 +244,23 @@ class DictionaryController:
             self.view.hide_spinner()
                 
         else:
-               
-                
+                self.view.read_button.config(state="normal")
                 self.view.hide_spinner()
+                
                 return
                 
         if engine._inLoop:
             self.view.read_button.config(state="normal")
             self.view.while_end_image()
-            engine.endLoop()
             self.view.hide_spinner()
+            engine.endLoop()
             # this function processes the voice 
         else:
                 
                 self.view.read_button.config(state="normal")
                 self.view.while_reading_image()
-                engine.runAndWait()
                 self.view.hide_spinner()
+                engine.runAndWait()
         self.view.while_end_image()
         self.view.read_button.config(state="normal")
 
@@ -267,7 +268,7 @@ class DictionaryController:
     def increment(self,number): #increasing the progressbar
 
             self.view.progress["value"] = number+10
-            self.view.tab4.update()
+            self.view.saving_window.update()
 
 
     def meaning_save(self): #saving meaning
@@ -308,8 +309,7 @@ class DictionaryController:
         self.view.progress.pack_forget()
         if self.view.askyesno(title="SAVING COMPLETE ", message="SAVED IN 'SAVED_MEANINGS' FOLDER.\n WOULD YOU LIKE TO OPEN fILE?"):
             self.model.open_file_txt(file_path)
-            self.switch_tab(self.view.parent_tab,0)
-            self.view.parent_tab.hide(3)
+
 
 
     def meaning_read_save(self):
@@ -350,8 +350,6 @@ class DictionaryController:
             self.view.progress.pack_forget()
             if self.view.askyesno(title="SAVING COMPLETE ", message="SAVED IN 'SAVED_MEANINGS' FOLDER.\n WOULD YOU LIKE TO OPEN fILE?"):
                 self.model.open_file(file_path)
-                self.switch_tab(self.view.parent_tab,0)
-                self.view.parent_tab.hide(3)
             
 
     def clear_history(self): #function for clearing history
@@ -422,12 +420,33 @@ class DictionaryController:
     def view_audiofolder(self): #opening saved_meanings folder
         self.model.open_folder()
 
+    def copy(self):
+            try:
+                to_be_copied=self.view.tab1.selection_get()
+                self.view.tab1.clipboard_clear()
+                self.view.tab1.clipboard_append(to_be_copied)
+                self.view.copy_label.config(text="Copied 📋")
+            except Exception:
+                 return
+            self.view.tab1.after(5000, lambda:self.view.copy_label.config(text=""))
 
     def copy_meaning(self): #copying meanings into clipboard
-            
+            self.view.copy_label.config(text="Copied 📋")
             meanings=self.view.meaning_box.get(1.0,self.view.end).strip()
             self.view.tab1.clipboard_clear()
             self.view.tab1.clipboard_append(meanings)
+            self.view.tab1.after(5000, lambda:self.view.copy_label.config(text=""))
+
+    def search_selected(self):
+        try:
+            new_word=self.view.meaning_box.selection_get()
+            self.view.entry.delete(0, self.view.end)
+            self.view.entry.insert(0, new_word)
+            self.search()
+        except Exception:
+            return
+
+
 
 
     def cut(self): 

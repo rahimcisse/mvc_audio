@@ -29,33 +29,34 @@ class DictionaryView: #defining the dictionary view
         self.tab1 = ttk.Frame(self.parent_tab)  #creating frames to be added to the main notebook as tabs and storing them in variables 
         self.tab2 = ttk.Frame(self.parent_tab)
         self.tab3 = ttk.Frame(self.parent_tab)
-        self.tab4 = ttk.Frame(self.parent_tab)
+        
 
     
         self.parent_tab.add(self.tab1, text="Home") #adding all those tabs into the main noebook and assigning them names
         self.parent_tab.add(self.tab3, text="Recent") 
         self.parent_tab.add(self.tab2, text="Settings")
-        self.parent_tab.add(self.tab4, text="Save As")
+       
         self.parent_tab.pack(expand=1, fill="both") #packing the notebook on the main window 
-        self.parent_tab.hide(3) # hiding a frame in the notebook with the index 3 (tab4)
+
 
         
         self.setup_tab1()   #calling the functions defined under to setup the window
         self.setup_tab2()
         self.setup_tab3()
-        self.setup_tab4()
+    
 
 
         self.menu = tk.Menu(self.root,bg="lightblue", tearoff=0) #defining menu to have its parent as the main window and storing menu into self.menu since that is the object
-        self.menu.add_command(label="Search", command=self.controller.search)  #and also tearoff by deefault is 1 which means the user can turn this menu into another window
+        self.menu.add_command(label="Search selected", command=self.controller.search_selected)  #and also tearoff by deefault is 1 which means the user can turn this menu into another window
         self.menu.add_separator()                                                             #adding commands to the menu andsepetators        self.menu.add_command(label="Pronounce word",command=self.controller.say_word)
         self.menu.add_command(label="Spell word",command=self.controller.spell)
         self.menu.add_command(label="Read meaning",command=self.controller.read_sentence)
         self.menu.add_separator()
-        self.menu.add_command(label="Save meanings", command=lambda:(self.parent_tab.add(self.tab4),self.controller.switch_tab(self.parent_tab,3)))
-        self.menu.add_separator()
+        self.menu.add_command(label="Save meanings", command=lambda:self.setup_saving_window(root))
         self.menu.add_command(label="Copy meanings", command=self.controller.copy_meaning)
+        self.menu.add_separator()
         self.menu.add_command(label="Cut", command=self.controller.cut)
+        self.menu.add_command(label="Copy", command=self.controller.copy)
         self.menu.add_command(label="Paste", command=self.controller.paste)
     
 
@@ -88,31 +89,41 @@ class DictionaryView: #defining the dictionary view
         
         self.entry = ttk.Combobox(self.tab1, width=45, font=("Cambria", 15))    #creating our combobox entry 
         self.entry.pack(side="top", expand=1, fill="x")                         #packing it into tab1
-        self.entry.bind('<KeyRelease>', self.controller.likely)                 #bingingg the entry so that whenever a key is released, it should calll the "likely" fuction inside the contoller
+        self.entry.bind('<Return>', lambda event: self.controller.search())              #bingingg the entry so that whenever a key is released, it should calll the "likely" fuction inside the contoller
+        self.entry.bind('<KeyRelease>', self.controller.likely)              #bingingg the entry so that whenever a key is released, it should calll the "likely" fuction inside the contoller
+        self.entry.focus()
+
 
         self.read_word_button=tk.Button(self.entry,bd=4,text="🔊",bg="lightblue",command=self.controller.say_word,cursor="hand2") #crreatng the read button
         self.read_word_button.pack(side="right", padx=25)   #packing it into the window
         self.hover_popup(self.read_word_button, "Pronounce word") #when the mouse is delayed on the read button,it should show "pronounce word"
 
-        self.preview = tk.Text(self.tab1, width=10, height=1, bg="#ececec", font=("Times New Roman", 20), state="disabled")
-        self.preview.pack(pady=10) #this shows the word that is being searched for
 
         self.search_image = tk.PhotoImage(file="images/search.png")
         self.search_button=tk.Button(self.tab1, bg="#f5f5f5", width=50, height=30, bd=5, image=self.search_image, command=self.controller.search,cursor="hand2")
         self.search_button.pack(side="top") #using an image on the button and also packing it on the window to be used for searching for word 
         self.hover_popup(self.search_button, "Search for meanings")
-
-        
-        self.meaning_label=tk.Label(self.tab1,text="Meanings" )
+ 
+        self.meaning_label=tk.Label(self.tab1, text="Meanings", font=("Gabriola", 30))
         self.meaning_label.pack(side="top") 
 
-        self.read_image = tk.PhotoImage(file="images/read.png")
-        self.read_button = tk.Button(self.tab1, bg="#4ec3f8", width=110, height=300, bd=5,cursor="hand2", image=self.read_image, command=self.controller.read_sentence)
+
+        self.save_button=tk.Button(self.tab1,cursor="hand2",bg="#4ec3f8", height=1 ,bd=5,text="Save", command=lambda:self.setup_saving_window(self.root))   
+        self.save_button.place(x=0,y=325) 
+        self.hover_popup(self.save_button, "Save meanings of words in audio or text")
+
+        self.copy_label=tk.Label(self.tab1,bg="#f0f0f0",font=("Segoe Script", 10),fg="#4ec3f8")   
+        self.copy_label.place(x=50,y=330) 
+      
+
+        self.read_image = tk.PhotoImage(file="images/read_man.png")
+        self.read_button = tk.Button(self.tab1, bg="#4ec3f8", width=110, height=350, bd=5,cursor="hand2", image=self.read_image, command=self.controller.read_sentence)
         self.read_button.pack(side="left")
         self.hover_popup(self.read_button, "Read meaning")
         
         self.meaning_box = ScrolledText(self.tab1, state="disabled", bg="white", width=45, font=("Candara", 15), height=15, bd=5, blockcursor=True)
         self.meaning_box.pack(side="top", expand=1, fill="x") #using the scrolled text from tkinter to preview meanings
+        
 
 
     def setup_tab2(self):
@@ -127,12 +138,12 @@ class DictionaryView: #defining the dictionary view
         self.selected_voice.set(1) #setting default as Female
 
         self.style=ttk.Style()
-        self.style.configure('TScale',background='lightgrey') #configuring the slider to have a lightgrey background
+        self.style.configure('TScale',background='#f0f0f0') #configuring the slider to have a lightgrey background
         self.selected_speed=tk.IntVar 
 
         tk.Label(self.tab2, text="Set Reading Speed", justify="left", font=("Gabriola", 25)).pack(side="top")
-        self.speed_slider=ttk.Scale(self.tab2,from_=1,to=200,style='TScale',variable=self.selected_speed ,command=self.controller.speed_slider_change, orient="horizontal",cursor="hand2")
-        self.speed_slider.pack(side="top")
+        self.speed_slider=ttk.Scale(self.tab2,from_=1,to=200,length=150, style='TScale',variable=self.selected_speed ,command=self.controller.speed_slider_change, orient="horizontal",cursor="hand2")
+        self.speed_slider.pack(side="top", padx=10)
         self.hover_popup(self.speed_slider, "Increase or decrease speed of reading")
         
         self.speed_label=tk.Label(self.tab2, justify="left", font=("Gabriola", 15))
@@ -182,6 +193,7 @@ class DictionaryView: #defining the dictionary view
         self.eight_word.pack (side="top",fill="x")
         self.hover_popup(self.eight_word, "Research")
 
+
         self.clear=tk.Button(self.tab3,width=10, height=1 ,cursor="hand2",bd=5,bg="#ff6060",text="Clear History" ,command=self.controller.clear_history)
         self.clear.pack(side="left") #button for clearing all history
         self.hover_popup(self.clear, "Clear all history")
@@ -190,39 +202,51 @@ class DictionaryView: #defining the dictionary view
         self.show_button.pack(side="left") #button for showing all history
         self.hover_popup(self.show_button, "Display full history")
 
-        self.save_button=tk.Button(self.tab3,width=15,cursor="hand2",bg="lightblue", height=1 ,bd=5,text="Save Audio", command=lambda:(self.parent_tab.add(self.tab4),self.controller.switch_tab(self.parent_tab,3)))   
-        self.save_button.pack(side="right") 
-        self.save_button.pack_forget()  #button for saving  meanings. it disapears if there are no meanings to save
-        self.hover_popup(self.save_button, "Save meanings")
 
-
-    def setup_tab4(self):
+    is_saving=False #showing that the history window is closed
+    def is_saving_boolean(self): #definig a function for closing the histor window
+        if self.is_saving:
+            self.saving_window.destroy()
+            global is_open
+            self.is_saving=False
+        else:
+            return
         
-        tk.Label(self.tab4, text="Save Recent Audio Meaning ", justify="left", font=("Gabriola", 35)).pack(side="top",pady=15)
-        tk.Label(self.tab4, text="Input Save As Name", justify="left", font=("Gabriola", 25)).pack(side="top")
 
-        self.selected_save = tk.IntVar()
-        tk.Radiobutton(self.tab4, text="Audio", variable=self.selected_save, value=0,cursor="hand2", font=3).pack(side="top")
-        tk.Radiobutton(self.tab4, text="Text", variable=self.selected_save, value=1,cursor="hand2", font=3).pack(side="top")
- 
-        self.file_name=tk.Entry(self.tab4, font=30,bd=10,bg="lightgrey",border=5)
-        self.file_name.pack(side="top",pady=20) #save as name
+    def setup_saving_window(self,root):
+        global is_saving
+        if self.is_saving == False:
+                self.saving_window=tk.Toplevel(root)
+                
+                tk.Label(self.saving_window, text="Save Recent Audio Meaning ", justify="left", font=("Gabriola", 35)).pack(side="top",pady=15)
+                tk.Label(self.saving_window, text="Enter the name you want to save the file as", justify="left", font=("Gabriola", 25)).pack(side="top")
 
-        self.save_audio=tk.Button(self.tab4,bd=5,bg="lightblue",font=30, command=self.controller.meaning_save,cursor="hand2", text="Save meanings")
-        self.save_audio.pack(side="top",pady=10) #button for saving
-
-
-        self.openfolder=tk.Button(self.tab4,bd=5,bg="lightblue",font=10, text="Downloads",cursor="hand2",  command=self.controller.view_audiofolder)
-        self.openfolder.pack(side="top") #opening the folder which the saved meanings are
-        self.hover_popup(self.save_button, "View all saved audio")
-
-        self.progress=ttk.Progressbar(self.tab4, length=200) #creating progressbar 
-        self.progress.pack(side="top",pady=50) 
-        self.progress.pack_forget()
-
-        self.done=tk.Button(self.tab4,bd=5,bg="lightblue",font=20, text="Done",cursor="hand2",  command=lambda:(self.controller.switch_tab(self.parent_tab,0),self.parent_tab.hide(3)))
-        self.done.pack(side="bottom",pady=20) #button for finishing the saves
+                self.selected_save = tk.IntVar()
+                tk.Radiobutton(self.saving_window, text="Audio", variable=self.selected_save, value=0,cursor="hand2", font=3).pack(side="top")
+                tk.Radiobutton(self.saving_window, text="Text", variable=self.selected_save, value=1,cursor="hand2", font=3).pack(side="top")
         
+                self.file_name=tk.Entry(self.saving_window, font=30,bd=10,bg="lightgrey",border=5)
+                self.file_name.pack(side="top",pady=20) #save as name
+                self.file_name.focus_set()
+
+                self.save_audio=tk.Button(self.saving_window,bd=5,bg="lightblue",font=30, command=self.controller.meaning_save,cursor="hand2", text="Save meanings")
+                self.save_audio.pack(side="top",pady=10) #button for saving
+
+
+                self.openfolder=tk.Button(self.saving_window,bd=5,bg="lightblue",font=10, text="Downloads",cursor="hand2",  command=self.controller.view_audiofolder)
+                self.openfolder.pack(side="top") #opening the folder which the saved meanings are
+                self.hover_popup(self.save_button, "View all saved audio")
+
+                self.progress=ttk.Progressbar(self.saving_window, length=200) #creating progressbar 
+                self.progress.pack(side="top",pady=50) 
+                self.progress.pack_forget()
+
+                self.done=tk.Button(self.saving_window,bd=5,bg="lightblue",font=20, text="Done",cursor="hand2",  command=lambda:self.saving_window.destroy())
+                self.done.pack(side="bottom",pady=20) #button for finishing the saves
+
+                self.is_saving=True #raising a flag that the history window is open
+                self.saving_window.protocol("WM_DELETE_WINDOW", self.is_saving_boolean)
+                
 
     is_open=False #showing that the history window is closed
     def boolean(self): #definig a function for closing the histor window
@@ -264,11 +288,6 @@ class DictionaryView: #defining the dictionary view
                     return
 
 
-    def update_preview(self, word):
-        self.preview.config(state="normal")
-        self.preview.delete(1.0, tk.END)
-        self.preview.insert(1.0, word)
-        self.preview.config(state="disabled")
 
 
     def update_meaning_box(self, meanings): #inserting into meaningbox
