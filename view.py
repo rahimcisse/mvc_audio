@@ -20,9 +20,10 @@ class DictionaryView: #defining the dictionary view
         
         self.root.title("Audio Dictionary With Spell Checks")  #setting the title,background and geometry or size of the window
         self.root.config(bg="grey")     
-        self.root.geometry("650x700+400+1")
+        self.root.geometry("600x650+400+1")
         self.root.protocol("WM_DELETE_WINDOW", self.controller.on_closing) #This calls on_closing in the controlller class whenever the user wants to close the window
         
+        self.show_welcome_page()
 
 
         self.parent_tab = ttk.Notebook(self.root) # defining the parent window that manages all tabs in the program
@@ -30,16 +31,18 @@ class DictionaryView: #defining the dictionary view
         self.tab2 = ttk.Frame(self.parent_tab)
         self.tab3 = ttk.Frame(self.parent_tab)
         
-
+        self.home_tab = tk.PhotoImage(file="images/home_image.png")
+        self.recent_tab = tk.PhotoImage(file="images/recent_image.png")
+        self.settings_tab = tk.PhotoImage(file="images/settings_image.png")
+        self.welcome_image = tk.PhotoImage(file="images/welcome_image.gif")
     
-        self.parent_tab.add(self.tab1, text="Home") #adding all those tabs into the main noebook and assigning them names
-        self.parent_tab.add(self.tab3, text="Recent") 
-        self.parent_tab.add(self.tab2, text="Settings")
+        self.parent_tab.add(self.tab1, image=self.home_tab) #adding all those tabs into the main noebook and assigning them names
+        self.parent_tab.add(self.tab3, image=self.recent_tab) 
+        self.parent_tab.add(self.tab2, image=self.settings_tab)
        
         self.parent_tab.pack(expand=1, fill="both") #packing the notebook on the main window 
 
 
-        
         self.setup_tab1()   #calling the functions defined under to setup the window
         self.setup_tab2()
         self.setup_tab3()
@@ -71,7 +74,33 @@ class DictionaryView: #defining the dictionary view
         self.tab1.bind("<Button-3>", do_popup) #binding each of these widgets to the popup menu whenever the right mouse buttn is pressed with in them    
         self.meaning_box.bind("<Button-3>", do_popup)
         self.entry.bind("<Button-3>", do_popup)
+        self.entry.bind("<FocusIn>", self.on_entry_click)
+        self.entry.bind("<FocusOut>", self.on_focus_out)
+
+    def on_entry_click(self,event):
+        if self.entry.get() == "Enter Word Here":
+            self.entry.delete(0, tk.END)
+            self.entry.configure(foreground="black")
+
+    def on_focus_out(self,event):
+        if self.entry.get() == "":
+            self.entry.insert(0, "Enter Word Here")
+            self.entry.configure(foreground="gray") 
+
+
+    
+    def show_welcome_page(self):
         
+
+        self.welcome_frame = tk.Frame(self.root, bg='#fdfafe')
+        self.welcome_frame.place(relwidth=1, relheight=1)
+
+        self.welcome2 = SpinnerLabel(self.welcome_frame, 'images/welcome_image.gif', size=(650,700)) #calling the spinnerclass defined at the bottom of the code
+        self.welcome2.config(bg='white')
+
+        self.welcome2.pack(fill="both")
+
+        self.root.after(2600, self.welcome_frame.destroy)
 
 
     def setup_tab1(self): #defining a function to set up tab1
@@ -87,11 +116,11 @@ class DictionaryView: #defining the dictionary view
         self.spinner.pack()    #packing iton the loading label and ttaing two positiona arguments directory and size
         self.spinner.pack_forget()  #making the spinner disappear from the label. We only want to show it when there's a search ongoing 
         
-        self.entry = ttk.Combobox(self.tab1, width=45, font=("Cambria", 15))    #creating our combobox entry 
+        self.entry = ttk.Combobox(self.tab1, width=45, font=("Cambria", 15), foreground="grey")    #creating our combobox entry 
         self.entry.pack(side="top", expand=1, fill="x")                         #packing it into tab1
+        self.entry.insert(0, "Enter Word Here")
         self.entry.bind('<Return>', lambda event: self.controller.search())              #bingingg the entry so that whenever a key is released, it should calll the "likely" fuction inside the contoller
         self.entry.bind('<KeyRelease>', self.controller.likely)              #bingingg the entry so that whenever a key is released, it should calll the "likely" fuction inside the contoller
-        self.entry.focus()
 
 
         self.read_word_button=tk.Button(self.entry,bd=4,text="🔊",bg="lightblue",command=self.controller.say_word,cursor="hand2") #crreatng the read button
@@ -116,7 +145,7 @@ class DictionaryView: #defining the dictionary view
         self.copy_label.place(x=50,y=330) 
       
 
-        self.read_image = tk.PhotoImage(file="images/read_man.png")
+        self.read_image = tk.PhotoImage(file="images/read.png")
         self.read_button = tk.Button(self.tab1, bg="#4ec3f8", width=110, height=350, bd=5,cursor="hand2", image=self.read_image, command=self.controller.read_sentence)
         self.read_button.pack(side="left")
         self.hover_popup(self.read_button, "Read meaning")
@@ -228,6 +257,7 @@ class DictionaryView: #defining the dictionary view
                 self.file_name=tk.Entry(self.saving_window, font=30,bd=10,bg="lightgrey",border=5)
                 self.file_name.pack(side="top",pady=20) #save as name
                 self.file_name.focus_set()
+                
 
                 self.save_audio=tk.Button(self.saving_window,bd=5,bg="lightblue",font=30, command=self.controller.meaning_save,cursor="hand2", text="Save meanings")
                 self.save_audio.pack(side="top",pady=10) #button for saving
@@ -266,7 +296,7 @@ class DictionaryView: #defining the dictionary view
                 self.history_window.geometry("540x500+1+100")
                 self.history_window.resizable(False,False)
 
-                tk.Label(self.history_window, text="(  Word   , Date Time Year )", justify="left" ,background="#f2ffff", font=("Segoe Script", 25)).pack(side="top",fill="x")
+                tk.Label(self.history_window, text="(  Word   , Date Time Year )", justify="left" ,background="#f2ffff", font=("Segoe Script", 20)).pack(side="top",fill="x")
                 self.full=ScrolledText(self.history_window,fg="black",state="disabled", background="#f2ffff", bd=1,font=("Javanese Text",20),padx=12)
                 self.full.pack(side="top", fill="both")
 
@@ -293,9 +323,40 @@ class DictionaryView: #defining the dictionary view
     def update_meaning_box(self, meanings): #inserting into meaningbox
         self.meaning_box.config(state="normal")
         self.meaning_box.delete('1.0', tk.END)
-        for pos, meaning in enumerate(meanings, start=1):
-            self.meaning_box.insert(tk.END, f"{pos}. {meaning.capitalize()}:\n")
-            self.meaning_box.insert(tk.END, f"{', '.join(meanings[meaning])}\n\n")
+
+    # Clear the ScrolledText widget first
+        if meanings:
+                self.my_list=[]
+                for entry in meanings:
+                    self.meaning_box.insert(tk.END, f"Word: {entry.get('word')}\n")
+                    self.my_list.append(f"Word: {entry.get('word')}\n")
+                    self.meaning_box.insert(tk.END, f"Phonetic: {entry.get('phonetic')}\n")
+                    self.my_list.append(f"Phonetic: {entry.get('phonetic')}\n")
+                    if 'phonetics' in entry:
+                        for phonetic in entry['phonetics']:
+                            self.meaning_box.insert(tk.END, f" - Text: {phonetic.get('text')}\n")
+                            self.my_list.append(f" - Text: {phonetic.get('text')}\n")
+                    if 'meanings' in entry:
+                        for meaning in entry['meanings']:
+                            self.meaning_box.insert(tk.END, f"Part of Speech: {meaning.get('partOfSpeech')}\n")
+                            self.my_list.append(f"Part of Speech: {meaning.get('partOfSpeech')}\n")
+                            self.meaning_box.insert(tk.END, f" - Definition: \n")
+                            self.my_list.append(f" - Definition: \n")
+                            for definition in meaning['definitions']:
+                                self.meaning_box.insert(tk.END, f"{definition.get('definition')}\n")
+                                self.my_list.append(f"{definition.get('definition')}\n")
+                                if 'example' in definition:
+                                    self.meaning_box.insert(tk.END, f"   Example: {definition.get('example')}\n")
+                                    self.my_list.append(f"   Example: {definition.get('example')}\n")
+                            if meaning.get('synonyms'):
+                                self.meaning_box.insert(tk.END, f"Synonyms: {', '.join(meaning.get('synonyms'))}\n")
+                                self.my_list.append(f"Synonyms: {', '.join(meaning.get('synonyms'))}\n")
+                            if meaning.get('antonyms'):
+                                self.meaning_box.insert(tk.END, f"Antonyms: {', '.join(meaning.get('antonyms'))}\n")
+                                self.my_list.append(f"Antonyms: {', '.join(meaning.get('antonyms'))}\n")
+                
+        else:
+            return
         self.meaning_box.config(state="disabled")
 
 
@@ -322,8 +383,8 @@ class DictionaryView: #defining the dictionary view
 
 
 class SpinnerLabel(tk.Label):
-    def __init__(self, master, gif_path, size, *args, **kwargs):
-        tk.Label.__init__(self, master, *args, **kwargs)
+    def __init__(self, master, gif_path, size):
+        tk.Label.__init__(self, master)
         self.size = size
         self.frames = [ImageTk.PhotoImage(img.resize(self.size, Image.Resampling.LANCZOS)) 
                        for img in ImageSequence.Iterator(Image.open(gif_path))]
