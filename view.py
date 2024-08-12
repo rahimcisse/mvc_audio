@@ -100,7 +100,7 @@ class DictionaryView: #defining the dictionary view
 
         self.welcome2.pack(fill="both")
 
-        self.root.after(2600, self.welcome_frame.destroy)
+        self.root.after(2700, self.welcome_frame.destroy)
 
 
     def setup_tab1(self): #defining a function to set up tab1
@@ -394,7 +394,7 @@ class SpinnerLabel(tk.Label):
     def update_label(self):
         self.config(image=self.frames[self.index])
         self.index = (self.index + 1) % len(self.frames)
-        self.after(100, self.update_label)  # Adjust the delay as necessary
+        self.after(100, self.update_label)  
 
 
 
