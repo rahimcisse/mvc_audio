@@ -1,5 +1,0 @@
-main
-Word: main
-Phonetic: None
- - Text: None
- - Text: /me
