@@ -144,8 +144,8 @@ class DictionaryController:
                         error=True
 
                         return
-                else:
-                    print('Response', response)
+
+
             elif server==1:
                 dict_obj = PyDictionary()
                 meanings = dict_obj.meaning(word)
@@ -189,6 +189,9 @@ class DictionaryController:
                             self.is_running=False           #assigning false to the is_running showing that it is no longer searching
                             self.search()
                             return
+            else:
+                self.view.showerror(title='ERROR', message=f'"{word}" WAS NOT FOUND IN THE DICTIONARY!"?')
+
         else:
             if corrected_word != word:
                 if self.view.askyesno(title='ERROR', message=f'"{word}" WAS NOT FOUND IN THE DICTIONARY!.\n DO YOU MEAN "{corrected_word}"?'):  #showing the dialogbox with a suggested word
@@ -216,15 +219,15 @@ class DictionaryController:
         
 
             if word == "" or word=="Enter Word Here":
-                self.view.showerror(title='ERROR', message='PLEASE ENTER THE WORD YOU WANT TO SEARCH FOR!!')
                 self.view.hide_spinner()
+                self.view.showerror(title='ERROR', message='PLEASE ENTER THE WORD YOU WANT TO BE PRONOUNCED!!')
                 return
             
             self.view.read_word_button.config(state="disabled",bg="red")
             self.view.show_spinner()
-            engine = pyttsx3.init()
-            rate = engine.getProperty('rate')
-            engine.setProperty('rate', int(self.view.speed_slider.get()))
+            engine = pyttsx3.init()     #initializing the engine 
+            rate = engine.getProperty('rate')       #getting the speed property in pyttsx3
+            engine.setProperty('rate', int(self.view.speed_slider.get()))   
             voices = engine.getProperty('voices')
             engine.setProperty('voice', voices[self.view.selected_voice.get()].id)        
             engine.say(word)
@@ -313,10 +316,6 @@ class DictionaryController:
                         for meaning in meaning_list:
                                 engine.say(meaning)
                     self.view.hide_spinner()  
-
-                    
-                                
-                    
 
             else:
                     self.view.read_button.config(state="normal")

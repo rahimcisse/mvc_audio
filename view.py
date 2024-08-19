@@ -21,7 +21,7 @@ class DictionaryView:
         
         self.root.title("Audio Dictionary With Spell Checks")  
         self.root.config(bg="grey")     
-        self.root.geometry("600x650+400+1")
+        self.root.geometry("630x650+400+1")
         self.root.protocol("WM_DELETE_WINDOW", self.controller.on_closing) 
         
         self.show_welcome_page()
@@ -358,7 +358,7 @@ class DictionaryView:
 
     def while_reading_image(self):
         self.stop_image = tk.PhotoImage(file="images/stop.png")
-        self.read_button.config(bg='red', image=self.stop_image)
+        self.read_button.config(bg='#ec1c24', image=self.stop_image)
 
     
     def while_end_image(self):
