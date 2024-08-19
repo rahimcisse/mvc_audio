@@ -4,138 +4,164 @@ from textblob import TextBlob
 from view import DictionaryView
 from model import DictionaryModel
 from difflib import get_close_matches
-from PyDictionary import PyDictionary
 import requests
+from PyDictionary import PyDictionary
 
 
 
 class DictionaryController:
     def __init__(self, root):
-        self.model = DictionaryModel() 
-        self.view = DictionaryView(root, self)
-        self.is_running = False #assigning false to raise flag that program isn't searching for a word
-        self.is_open=False #raising a flag that full history widow isn't open
-        self.validating() #this function helps the user to search a word that has been searched recently by clicking on it 
+        self.model = DictionaryModel()    
+        self.view = DictionaryView(root, self)  
+        self.is_running = False      #assigning false to raise flag that program isn't searching for a word
+        self.is_open=False      #raising a flag that full history widow isn't open
+        self.displaying_researchable_words()      #this function helps the user to search a word that has been searched recently by clicking on it 
 
 
 
 
     def on_closing(self):
-        if self.view.askyesno(title="QUIT" , message="ARE YOU SURE YOU WANT TO QUIT?") : #for closing window
-            self.view.boolean()
-            self.view.is_saving_boolean()
-            self.view.root.destroy()
+        if self.view.askyesno(title="QUIT" , message="ARE YOU SURE YOU WANT TO QUIT?") :
+            self.view.close_history_window()   
+            self.view.close_saving_window()    
+            self.view.root.destroy()           
 
 
 
-    def speed_slider_change(self,event): #configuring the slider and slider label
+    def speed_slider_change(self,event):       #configuring the slider and slider label
         try:
-            self.slider=self.view.speed_slider.get()
-            speed_slider_new='{: .1f}'.format(self.slider)
-            self.view.speed_label.config(text=f"🐢          {speed_slider_new}          🐇")
+            self.slider=self.view.speed_slider.get()    
+            new_value='{: .1f}'.format(self.slider)     # formating the value from the slider into 1 decimal place
+            self.view.speed_label.config(text=f"🐢          {new_value}          🐇")       #displaying the new value of the slider on the label
         except AttributeError:
             pass
     
 
     
-    def likely(self,event): #gtting likely words
 
-        
-            def start(event):
-                word = self.view.entry.get().lower().strip()
-                likely_corrected_word=TextBlob(word).correct()
-                for likely_corrected in self.model.likely_words:
-                    if likely_corrected == likely_corrected_word:
-                        return
-                else:
-                    self.model.likely_words.append(likely_corrected_word)
-                
 
-                likely_word = get_close_matches(word, self.model.likely_words , cutoff=0.6,n=6)
-                if likely_word:
-                    self.view.entry.config(values=likely_word)
-                else:return
-            start_likely = threading.Thread(target=start, args=(event,))
-            start_likely.daemon=True
-            start_likely.start()
+    def likely(self, event):  # getting likely words
+
+        def start(event):
+            word = self.view.entry.get().lower().strip()  
+            
+            corrected_blob = TextBlob(word).correct()  # Correcting the word
+            likely_corrected_word = str(corrected_blob)  # Converting the corrected word to a string
+
+            if word != likely_corrected_word and likely_corrected_word not in self.model.likely_words:
+                self.model.likely_words.append(likely_corrected_word)  # Append the corrected word
+
+            # Get close matches from the likely words
+            likely_word = get_close_matches(word, self.model.likely_words, cutoff=0.6, n=6)
+            
+            if likely_word:
+                self.view.entry.config(values=likely_word)  # Update the combobox suggestions
+            else:
+                return
+
+        # Start the process in a new thread
+        start_likely = threading.Thread(target=start, args=(event,))
+        start_likely.daemon = True  # Ensure the thread closes with the program
+        start_likely.start()
+
 
 
     def search(self): #searching for word
         try:
-            if not self.is_running:
-                search_thread = threading.Thread(target=self.search_synthesis)
-                search_thread.daemon=True
-                search_thread.start()
+            if not self.is_running:        #checking if the program is already searching for a meaning
+                search_thread = threading.Thread(target=self.search_synthesis)      #passing the functionality into a thread
+                search_thread.daemon=True           #exiting the thread if the program is closed
+                search_thread.start()               #starting thread
         except Exception as e:
-            self.view.showerror(title='ERROR', message=e)
+            self.view.showerror(title='ERROR', message=e)   
 
+    server=0
+    def search_synthesis(self):   
+        global server  
+        word = self.view.entry.get().lower().strip()    #getting the word 
+        self.view.show_spinner()            
 
-    def search_synthesis(self):
-        word = self.view.entry.get().lower().strip()
-        self.view.show_spinner()
         
-        if word == "" or word=="enter word here":
-            self.view.showerror(title='ERROR', message='PLEASE ENTER THE WORD YOU WANT TO SEARCH FOR!!')
+        if word == "" or word=="enter word here":       #checking if the entry is either empty . if yes, do nothing
             self.view.hide_spinner()
+            self.view.showerror(title='ERROR', message='PLEASE ENTER THE WORD YOU WANT TO SEARCH FOR!!')
             return
         if word.isalpha()==False :
             # message box to display if the word variable has symbols and digits
-                self.view.showerror('ERROR',f'SORRY, CANNOT SEARCH FOR THE MEANING OF "{word}", PLEASE ENTER A SINGLE AND VALID WORD.')
                 self.view.hide_spinner()
+                self.view.showerror('ERROR',f'SORRY, CANNOT SEARCH FOR THE MEANING OF "{word}", PLEASE ENTER A SINGLE AND VALID WORD.')
                 return  # Exit the function if the word is empty
-        if not self.is_running:
-            
-            if word == '' :
-            # message box to display if the word variable is empty
-                self.view.showerror(title='ERROR', message='PLEASE ENTER THE WORD YOU WANT TO SEARCH FOR!!')
-                return  # Exit the function if the word is empty
-            self.is_running = True
-            
-
-            if word:
-                meanings = self.meaning(word)
-                if meanings:
-                    self.model.add_to_history(word)
-                    self.view.meaning_label.config(text=f"Meaning({word})")
-                    self.view.update_meaning_box(meanings)
-                    self.view.hide_spinner()
-                    self.validating()
-
-                else:
-                    
-                        if meanings is None:
-                            self.view.hide_spinner()
-                            self.correct(word)
-
-            else:
-                self.view.showerror(title='ERROR', message='PLEASE ENTER THE WORD YOU WANT TO SEARCH FOR!!')
-            self.is_running = False
-            self.view.hide_spinner()
-
-
-    def meaning(self, word):        #getting meanings
-        try:
-            url = f'https://api.dictionaryapi.dev/api/v2/entries/en/{word}'
-            response = requests.get(url)
-            if response.status_code == 200:
-                meanings = response.json()
-                return meanings
-            else: return None
         
-        except requests.exceptions.RequestException:
+        # corrected_word = TextBlob(word).correct()  
+        # if corrected_word != word:
+             
+        if not self.is_running:
+                    if self.view.selected_server.get()==0:
+                        server=0
+                    else:server=1
+                    meanings = self.meaning(word)
+                    if meanings:
+                        self.model.add_to_history(word)     #adding to the history and saving it
+                        self.view.meaning_label.config(text=f"Meaning({word})")     #displaying the word along next to the meaning label
+                        if self.view.selected_server.get()==0:
+                            self.view.update_meaning_box1(meanings)      #displaying the meanings in the meaning box
+                            server=0
+                        else:
+                            self.view.update_meaning_box2(meanings)
+                            server=1
+                        
+                        self.view.hide_spinner()    
+                        self.displaying_researchable_words()        #reassembling the words displayed in the buttons that can be researchable
+                    else:
+                        self.view.hide_spinner()
+                        self.correct(word)
+
+                
+                    
+                     #if there are no meanings, it calls the correct function 
+                            
+
+                    self.is_running = False
+                    self.view.hide_spinner()
+
+    error=False
+    
+    def meaning(self, word):        #getting meanings
+        global error
+        global server
+        try:
+            if server==0:
+                url = f'https://api.dictionaryapi.dev/api/v2/entries/en/{word}'     #storing the api into a variable
+                response = requests.get(url)                #using requests to get the meanings from the url
+                if response.status_code == 200:             #checking if there was a response or the meanings were found
+                    meanings = response.json()              #reading it in the json format and storing it in a variable to be returned the user
+                    
+                
+                    return meanings
+                elif response.status_code==526:  
+                        self.is_running = False
+                        self.view.showerror(title='ERROR', message='SOMETHING WENT WRONG! \n PLEASE TRY AGAIN LATER')
+                        error=True
+
+                        return
+                else:
+                    print('Response', response)
+            elif server==1:
+                dict_obj = PyDictionary()
+                meanings = dict_obj.meaning(word)
+
+            
+
+                return meanings
+
+
+        
+        except requests.exceptions.RequestException:    #catching   all errors
             self.is_running = False
             self.view.showerror(title='ERROR', message='THERE IS A PROBLEM WITH YOUR INTERNET CONNECTION! \nPLEASE CHECK IT AND THEN TRY AGAIN.')
             return
-        except FileNotFoundError:
-            self.is_running = False
-            self.view.showerror(title='ERROR', message=f'SOME FILES WERE NOT FOUND!!! PLEASE MAKE SURE YOU HAVE ALL REQUIRED FILES AND TRY AGAIN')
-            return
         
-        # catching all errors
-        except KeyError:
-            self.is_running = False
-            self.view.showerror(title='ERROR', message=f'"{word}" WAS NOT FOUND IN THE DICTIONARY!')
-            return
+        
         
         # no internet connectivity
         except ConnectionError:
@@ -151,43 +177,48 @@ class DictionaryController:
 
 
     def correct(self, word): #correcting words
-        corrected_word = TextBlob(word).correct()
-        if word==corrected_word:
-            return
-        correct_meaning=self.meaning(corrected_word) 
-                
+        corrected_word = TextBlob(word).correct()       #using textblob to correct the word
+        if self.view.selected_server.get()==0:
+            global error
 
-
-        if correct_meaning:
-            if self.view.askyesno(title='ERROR', message=f'"{word}" WAS NOT FOUND IN THE DICTIONARY!.\n DO YOU MEAN "{corrected_word}"?'):  
-                    self.view.entry.delete(0,self.view.end)
-                    self.view.entry.insert(self.view.end,corrected_word)
-                    self.is_running=False
-                    self.search()
+            #check if the corrected word is not equal to the word and also there is no ssl certificate error
+            if corrected_word != word  and self.error==False:
+                    if self.view.askyesno(title='ERROR', message=f'"{word}" WAS NOT FOUND IN THE DICTIONARY!.\n DO YOU MEAN "{corrected_word}"?'):  #showing the dialogbox with a suggested word
+                            self.view.entry.delete(0,self.view.end)     
+                            self.view.entry.insert(self.view.end,corrected_word)        
+                            self.is_running=False           #assigning false to the is_running showing that it is no longer searching
+                            self.search()
+                            return
+        else:
+            if corrected_word != word:
+                if self.view.askyesno(title='ERROR', message=f'"{word}" WAS NOT FOUND IN THE DICTIONARY!.\n DO YOU MEAN "{corrected_word}"?'):  #showing the dialogbox with a suggested word
+                        self.view.entry.delete(0,self.view.end)     
+                        self.view.entry.insert(self.view.end,corrected_word)        
+                        self.is_running=False           #assigning false to the is_running showing that it is no longer searching
+                        self.search()
             else:
-                        return
+                    self.view.showerror(title='ERROR', message='THERE IS A PROBLEM WITH YOUR INTERNET CONNECTION! \nPLEASE CHECK IT AND THEN TRY AGAIN.')
+                    self.is_running = False
+                    return
+   
+
 
     
     def say_word(self): #pronouncing word
         word=self.view.entry.get().strip()
         if word:
-            word_thread=threading.Thread(target=self.word_synthesis)
-            word_thread.daemon=True
-            word_thread.start()
+            say_word_thread=threading.Thread(target=self.word_synthesis, args=(word,))
+            say_word_thread.daemon=True
+            say_word_thread.start()
 
 
-    def word_synthesis(self):
-            word=self.view.entry.get().strip()
+    def word_synthesis(self,word):
+        
 
-            if word == "" or word=="enter word here":
+            if word == "" or word=="Enter Word Here":
                 self.view.showerror(title='ERROR', message='PLEASE ENTER THE WORD YOU WANT TO SEARCH FOR!!')
                 self.view.hide_spinner()
                 return
-            if word.isalpha()==False :
-            # message box to display if the word variable has symbols and digits
-                self.view.showerror('ERROR',f'SORRY, PRONOUNCE "{word}"\n PLEASE ENTER A VALID WORD.')
-                self.view.hide_spinner()
-                return  # Exit the function if the word is empty
             
             self.view.read_word_button.config(state="disabled",bg="red")
             self.view.show_spinner()
@@ -211,10 +242,10 @@ class DictionaryController:
 
 
     def read_sentence(self): #reading meanings
-        word = str(self.model.full_history[0])
         meanings=self.view.meaning_box.get(1.0,self.view.end).strip()
-        if word == ""or meanings=="":
+        if meanings=="":
             return   
+        word = str(self.model.full_history[0])
         if word:
             try:
                 read_sentence_thread = threading.Thread(target=self.read_sentence_synthesis, args=(word,))
@@ -228,10 +259,11 @@ class DictionaryController:
 
 
     def read_sentence_synthesis(self, word):
+        global server
         self.view.save_button.config(state="disabled")
         self.view.read_button.config(state="disabled")
         self.view.show_spinner()
-        meanings = self.meaning(word)
+        
         engine = pyttsx3.init()
         rate = engine.getProperty('rate')
         engine.setProperty('rate', int(self.view.speed_slider.get()))
@@ -240,33 +272,7 @@ class DictionaryController:
         # creating a dictionary object
 
 
-        if meanings:
-            for entry in meanings:
-                engine.say( f"Word: {entry.get('word')}")
-                engine.say( f"Phonetic: {entry.get('phonetic')}")
-                if 'phonetics' in entry:
-                    for phonetic in entry['phonetics']:
-                        engine.say( f" - Text: {phonetic.get('text')}")
-                if 'meanings' in entry:
-                    for meaning in entry['meanings']:
-                        engine.say( f"Part of Speech: {meaning.get('partOfSpeech')}")
-                        engine.say( f" - Definition: \n")
-                        for definition in meaning['definitions']:
-                            engine.say( f"{definition.get('definition')}\n")
-                            if 'example' in definition:
-                                engine.say( f"   Example: {definition.get('example')}")
-                        if meaning.get('synonyms'):
-                            engine.say( f"Synonyms: {', '.join(meaning.get('synonyms'))}")
-                        if meaning.get('antonyms'):
-                            engine.say( f"Antonyms: {', '.join(meaning.get('antonyms'))}")
-                        
-            self.view.hide_spinner()
-                
-        else:
-                self.view.read_button.config(state="normal")
-                self.view.hide_spinner()
-                
-                return
+
                 
         if engine._inLoop:
             engine.endLoop()
@@ -276,13 +282,53 @@ class DictionaryController:
             self.view.hide_spinner()
             self.is_running=False
             # this function processes the voice 
-        else:
+        else: 
+            meanings = self.meaning(word)
+            if meanings:
+                if server==0 :
+                    for entry in meanings:
+                        engine.say( f"Word: {entry.get('word')}")
+                        engine.say( f"Phonetic: {entry.get('phonetic')}")
+                        if 'phonetics' in entry:
+                            for phonetic in entry['phonetics']:
+                                engine.say( f" - Text: {phonetic.get('text')}")
+                        if 'meanings' in entry:
+                            for meaning in entry['meanings']:
+                                engine.say( f"Part of Speech: {meaning.get('partOfSpeech')}")
+                                engine.say( f" - Definition: \n")
+                                for definition in meaning['definitions']:
+                                    engine.say( f"{definition.get('definition')}\n")
+                                    if 'example' in definition:
+                                        engine.say( f"   Example: {definition.get('example')}")
+                                if meaning.get('synonyms'):
+                                    engine.say( f"Synonyms: {', '.join(meaning.get('synonyms'))}")
+                                if meaning.get('antonyms'):
+                                    engine.say( f"Antonyms: {', '.join(meaning.get('antonyms'))}")
+                    self.view.hide_spinner()
+                else:
+                    engine.say(word)
+                        # read_sentence each meaning
+                    for part_of_speech, meaning_list in meanings.items():
+                        engine.say(part_of_speech)
+                        for meaning in meaning_list:
+                                engine.say(meaning)
+                    self.view.hide_spinner()  
+
+                    
+                                
+                    
+
+            else:
+                    self.view.read_button.config(state="normal")
+                    self.view.hide_spinner()
+                    
+                    return
                 
-                self.view.while_reading_image()
-                self.view.read_button.config(state="normal")
-                engine.runAndWait()
-                self.view.hide_spinner()
-                self.is_reading=True
+            self.view.while_reading_image()
+            self.view.read_button.config(state="normal")
+            engine.runAndWait()
+            self.view.hide_spinner()
+            self.is_reading=True
         self.view.while_end_image()
         self.view.read_button.config(state="normal")
         self.view.save_button.config(state="normal")
@@ -296,16 +342,16 @@ class DictionaryController:
 
     def meaning_save(self): #saving meaning
         if self.view.selected_save.get()==0:
-            self.meaning_read_save()
+            self.read_meaning_save()
             
         else:
-            self.meaning_text_save()
+            self.text_meaning_save()
 
 
-    def meaning_text_save(self):
-         saving_txt=threading.Thread(target=self.saving_text)
-         saving_txt.daemon=True
-         saving_txt.start()
+    def text_meaning_save(self):
+         saving_text_thread=threading.Thread(target=self.saving_text)
+         saving_text_thread.daemon=True
+         saving_text_thread.start()
 
 
     def saving_text(self):
@@ -331,17 +377,17 @@ class DictionaryController:
         self.view.progress.stop()
         self.view.progress.pack_forget()
         if self.view.askyesno(title="SAVING COMPLETE ", message="SAVED IN 'SAVED_MEANINGS' FOLDER.\n WOULD YOU LIKE TO OPEN fILE?"):
-            self.model.open_file_txt(file_path)
+            self.model.open_file(f"/saved_meanings/{file_path}.txt")
 
 
 
-    def meaning_read_save(self):
-        save=threading.Thread(target=self.saving)
+    def read_meaning_save(self):
+        save=threading.Thread(target=self.saving_audio)
         save.daemon=True
         save.start()
 
 
-    def saving(self):
+    def saving_audio(self):
         file_path=str(self.view.file_name.get().strip())
         meanings=self.view.meaning_box.get(1.0,self.view.end).strip()
         if meanings=="":
@@ -371,17 +417,20 @@ class DictionaryController:
             self.view.progress.stop()
             self.view.progress.pack_forget()
             if self.view.askyesno(title="SAVING COMPLETE ", message="SAVED IN 'SAVED_MEANINGS' FOLDER.\n WOULD YOU LIKE TO OPEN fILE?"):
-                self.model.open_file(file_path)
+                self.model.open_file(f"/saved_meanings/{file_path}.mp3")
             
 
     def clear_history(self): #function for clearing history
         self.view.tab3.bell()
         if self.view.askyesno("CLEAR", f"ARE YOU SURE YOU WANT TO CLEAR HISTORY? \n ALL SAVED DATA WILL BE LOST!!!"):
-            self.model.full_history = []
-            self.model.search_time = []
-            self.model.save_data()
-            self.validating()
-            self.view.full.delete(0,self.view.end)
+            try:
+                self.model.full_history = []
+                self.model.search_time = []
+                self.model.save_data()
+                self.displaying_researchable_words()
+                self.view.full.delete(0,self.view.end)
+            except Exception:
+                 return
 
 
     
@@ -405,15 +454,9 @@ class DictionaryController:
     def spell_synthesis(self):
             word=self.view.entry.get().strip()
 
-            if word == "":
-                self.view.showerror(title='ERROR', message='PLEASE ENTER THE WORD YOU WANT TO SEARCH FOR!!')
-                self.view.hide_spinner()
+            if word == "" or word=="Enter Word Here":
                 return
-            if word.isalpha()==False :
-            # message box to display if the word variable has symbols and digits
-                self.view.showerror('ERROR',f'SORRY, CANNOT SEARCH FOR THE MEANING OF"{word}"\n PLEASE ENTER A VALID WORD.')
-                self.view.hide_spinner()
-                return  # Exit the function if the word is empty
+
             
             self.view.read_word_button.config(state="disabled")
             self.view.show_spinner()
@@ -440,8 +483,9 @@ class DictionaryController:
          
 
 
-    def view_audiofolder(self): #opening saved_meanings folder
-        self.model.open_folder()
+    def view_savedfolder(self): #opening saved_meanings folder
+        self.model.open_file("/saved_meanings")
+
 
     def copy(self):
             try:
@@ -460,6 +504,7 @@ class DictionaryController:
             self.view.tab1.clipboard_append(meanings)
             self.view.tab1.after(5000, lambda:self.view.copy_label.config(text=""))
 
+
     def search_selected(self):
         try:
             new_word=self.view.meaning_box.selection_get()
@@ -468,8 +513,6 @@ class DictionaryController:
             self.search()
         except Exception:
             return
-
-
 
 
     def cut(self): 
@@ -507,25 +550,12 @@ class DictionaryController:
 
 
 
-    def validating(self):
-        self.model.full_history.reverse()
-        self.model.search_time.reverse()
-        if 0 < len(self.model.full_history) and  0 < len(self.model.search_time):
-            self.view.first_word.config(text=f"{self.model.full_history[0]}          {self.model.search_time[0]}")
-        if  1 < len(self.model.full_history) and  1 < len(self.model.search_time):
-            self.view.second_word.config(text=f"{self.model.full_history[1]}          {self.model.search_time[1]}")
-        if  2 < len(self.model.full_history) and 2 < len(self.model.search_time):
-            self.view.third_word.config(text=f"{self.model.full_history[2]}          {self.model.search_time[2]}")
-        if  3 < len(self.model.full_history) and  3 < len(self.model.search_time):
-            self.view.fourth_word.config(text=f"{self.model.full_history[3]}          {self.model.search_time[3]}")
-        if  4 < len(self.model.full_history) and  4 < len(self.model.search_time):
-            self.view.fifth_word.config(text=f"{self.model.full_history[4]}          {self.model.search_time[4]}")    
-        if  5 < len(self.model.full_history) and  5 < len(self.model.search_time):
-            self.view.sixth_word.config(text=f"{self.model.full_history[5]}          {self.model.search_time[5]}")  
-        if  6 < len(self.model.full_history) and  6 < len(self.model.search_time):
-            self.view.seventh_word.config(text=f"{self.model.full_history[6]}          {self.model.search_time[6]}")  
-        if  7 < len(self.model.full_history) and  7 < len(self.model.search_time):
-            self.view.eight_word.config(text=f"{self.model.full_history[7]}          {self.model.search_time[7]}")  
-        else:
-            return
-    
+    def displaying_researchable_words(self):
+            buttons = [ self.view.first_word,  self.view.second_word,  self.view.third_word,  self.view.fourth_word,  self.view.fifth_word,  self.view.sixth_word,  self.view.seventh_word,   self.view.eight_word]
+            for i in range(8):
+                if i < len(self.model.full_history) and  i < len(self.model.search_time):
+                    buttons[i].config(text=f"{self.model.full_history[i]}          {self.model.search_time[i]}")
+                else:
+                     buttons[i].config(text=f"")
+
+        

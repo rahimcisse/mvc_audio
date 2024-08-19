@@ -7,7 +7,7 @@ class DictionaryModel: #defining model class
         self.full_history = [] #setting all lists as empty
         self.search_time = []
         self.likely_words=[]
-        self.data_path = "documents/data.json"  #storing path into
+        self.data_path = "documents/data.json"  
         self.load_data()
 
 
@@ -18,38 +18,32 @@ class DictionaryModel: #defining model class
 
     def load_data(self):#loading data into lists
         
-        os.makedirs("documents", exist_ok=True)
+        os.makedirs("documents", exist_ok=True)     #creats a folder which takes the name of the first arguments and returns if there's already a folder of that name 
         os.makedirs("saved_meanings", exist_ok=True)
 
-        if os.path.isfile(self.data_path)==False:
+        if os.path.isfile(self.data_path)==False:   #creates a json file inside the folder created if theres none
             file = open(self.data_path, 'a') 
         try:
-            with open(self.data_path, "r") as json_file:
+            with open(self.data_path, "r") as json_file:    #reads history from json file and stores them into lists
                 data = json.load(json_file)
                 self.full_history = data.get("full_history", [])
                 self.search_time = data.get("search_time", [])
-        except (FileNotFoundError, json.JSONDecodeError):
+        except (FileNotFoundError, json.JSONDecodeError):       #if the file is empty or cannot be found, it sets them as empty lists 
             self.full_history = []
             self.search_time = []
 
 
     def add_to_history(self, word): #adding to history
         current_time = time.ctime()
-        self.full_history.append(word)
+        self.full_history.insert(0,word)
         self.search_time.append(current_time)
         self.save_data()
         
     def open_file(self,file_path): #opening saved file
-        root_path=os.getcwd()
-        os.startfile(f"{root_path}/saved_meanings/{file_path}.mp3")
+        root_path=os.getcwd()           #getting the directory of the parent folder on the users computer
+        os.startfile(f"{root_path}{file_path}")     #opening a file with the inputed path 
 
-    def open_file_txt(self,file_path):
-        root_path=os.getcwd()
-        os.startfile(f"{root_path}/saved_meanings/{file_path}.txt")
 
-    def open_folder(self):
-        root_path=os.getcwd()
-        os.startfile(f"{root_path}/saved_meanings")
 
 
 
